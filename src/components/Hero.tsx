@@ -1,7 +1,10 @@
 
 import { Shield, Music, Cloud } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen pt-16 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
@@ -22,10 +25,16 @@ const Hero = () => {
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4 animate-fade-in opacity-0 [animation-delay:800ms] [animation-fill-mode:forwards]">
-          <button className="px-8 py-3 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors">
+          <button 
+            className="px-8 py-3 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
+            onClick={() => navigate('/get-started')}
+          >
             Get Started Free
           </button>
-          <button className="px-8 py-3 rounded-lg border border-foreground/20 text-foreground hover:bg-foreground/5 transition-colors">
+          <button 
+            className="px-8 py-3 rounded-lg border border-foreground/20 text-foreground hover:bg-foreground/5 transition-colors"
+            onClick={() => navigate('/features')}
+          >
             Learn More
           </button>
         </div>
