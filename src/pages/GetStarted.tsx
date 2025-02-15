@@ -1,8 +1,11 @@
 
 import Navbar from "@/components/Navbar";
 import { Cloud, Lock, Music, PlayCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const GetStarted = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
       <Navbar />
@@ -53,7 +56,10 @@ const GetStarted = () => {
           ))}
 
           <div className="text-center mt-16 animate-fade-in opacity-0" style={{ animationDelay: "800ms", animationFillMode: "forwards" }}>
-            <button className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg transition-colors">
+            <button 
+              className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg transition-colors"
+              onClick={() => navigate('/signup')}
+            >
               Create Your Account
             </button>
           </div>
