@@ -1,6 +1,6 @@
 
 import Navbar from "@/components/Navbar";
-import { Music2, Waveform, CloudRain, Share2, Lock, Library } from "lucide-react";
+import { Music2, AudioLines, CloudRain, Share2, Lock, Library } from "lucide-react";
 
 const Features = () => {
   return (
@@ -19,7 +19,7 @@ const Features = () => {
               description: "Automatically organize your music based on your preferences and listening habits."
             },
             {
-              icon: <Waveform className="w-8 h-8 text-primary" />,
+              icon: <AudioLines className="w-8 h-8 text-primary" />,
               title: "Lossless Audio",
               description: "Experience your music in pristine quality with support for high-resolution audio formats."
             },
