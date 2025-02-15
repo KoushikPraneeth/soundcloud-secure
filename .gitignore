@@ -1,24 +1,74 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# ===============================
+# General OS Files
+# ===============================
 .DS_Store
+Thumbs.db
+
+# ===============================
+# IDE and Editor Files
+# ===============================
+.vscode/
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# ===============================
+# Maven and Java Build Artifacts
+# ===============================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+*.ipr
+*.iws
+bin/
+build/
+
+# Maven specific files
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# ===============================
+# Gradle Build Artifacts
+# ===============================
+.gradle/
+build/
+
+# ===============================
+# Log Files
+# ===============================
+*.log
+
+# ===============================
+# Node.js / Frontend Build Artifacts and Dependencies
+# ===============================
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.env
+frontend/.env.*
+
+
+# ===============================
+# Environment Files
+# ===============================
+.env
+.env.local
+.env.*
+
+
+# ===============================
+# Other
+# ===============================
+coverage/
