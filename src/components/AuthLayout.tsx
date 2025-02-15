@@ -15,8 +15,8 @@ const AuthLayout = ({ children, title, description }: AuthLayoutProps) => {
       <div className="container pt-24 pb-16">
         <Card className="max-w-md mx-auto animate-fade-in">
           <CardHeader>
-            <h2 className="text-2xl font-bold text-center">{title}</h2>
-            <p className="text-sm text-muted-foreground text-center">{description}</p>
+            <h2 className="text-2xl font-bold text-center text-foreground">{title}</h2>
+            <p className="text-sm text-primary-foreground text-center font-medium">{description}</p>
           </CardHeader>
           <CardContent>{children}</CardContent>
         </Card>
