@@ -117,3 +117,4 @@ spring:
     url: jdbc:postgresql://[your-project-id].supabase.co:5432/postgres
     username: postgres
     password: [your-database-password]
+```

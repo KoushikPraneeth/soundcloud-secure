@@ -1,13 +1,9 @@
 package com.koushik.soundcloud.service;
 
-import java.io.InputStream;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import org.apache.tika.Tika;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,11 +13,11 @@ import com.koushik.soundcloud.exception.CloudStorageException;
 import com.koushik.soundcloud.repository.TrackRepository;
 import com.koushik.soundcloud.repository.UserPreferencesRepository;
 import com.koushik.soundcloud.service.EncryptionService;
+import com.koushik.soundcloud.dto.response.EncryptionResult;
+import com.koushik.soundcloud.service.impl.ByteArrayMultipartFile;
+import com.koushik.soundcloud.service.impl.SupabaseStorageClient;
+import com.koushik.soundcloud.model.CloudStorageFile;
 
-import io.supabase.client.StorageClient;
-import io.supabase.client.StorageFileApi;
-import io.supabase.client.SupabaseClient;
-import io.supabase.client.SupabaseClientBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,63 +25,45 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class StorageService {
-    
-    @Value("${supabase.url}")
-    private String supabaseUrl;
-    
-    @Value("${supabase.key}")
-    private String supabaseKey;
-    
-    @Value("${supabase.bucket}")
-    private String bucketName;
-
     private final TrackRepository trackRepository;
     private final EncryptionService encryptionService;
     private final UserPreferencesRepository userPreferencesRepository;
+    private final SupabaseStorageClient supabaseStorageClient;
     private final Tika tika = new Tika();
 
-    private SupabaseClient getClient() {
-        return new SupabaseClientBuilder(supabaseUrl, supabaseKey).build();
-    }
-
     @Transactional
-    public Track uploadFile(MultipartFile file, String userId, String title) throws Exception {
+    public Track uploadFile(MultipartFile file, UUID userId, String title) throws Exception {
         String fileId = UUID.randomUUID().toString();
-        String contentType = tika.detect(file.getInputStream());
+        String contentType = tika.detect(file.getBytes());
         
         if (!contentType.startsWith("audio/")) {
             throw new CloudStorageException("File must be an audio file");
         }
         
-        StorageClient storageClient = getClient().getStorage();
-        StorageFileApi bucket = storageClient.from(bucketName);
-
-        // Encrypt file content if needed
-        InputStream fileContent;
+        byte[] fileContent;
         String encryptionKey = null;
         String iv = null;
         
         if (shouldEncryptFile(userId)) {
-            var encryptedData = encryptionService.encrypt(file.getInputStream());
-            fileContent = encryptedData.getInputStream();
-            encryptionKey = encryptedData.getKey();
-            iv = encryptedData.getIv();
+            encryptionKey = encryptionService.generateKey();
+            iv = encryptionService.generateIv();
+            EncryptionResult encryptedData = encryptionService.encrypt(file.getBytes(), encryptionKey, iv);
+            fileContent = encryptedData.getData();
         } else {
-            fileContent = file.getInputStream();
+            fileContent = file.getBytes();
         }
 
-        Map<String, String> fileOptions = new HashMap<>();
-        fileOptions.put("contentType", contentType);
-
         try {
-            bucket.upload(fileId, fileContent, contentType, fileOptions);
-            String storageUrl = bucket.getSignedUrl(fileId, 60 * 60 * 24); // 24 hour signed URL
+            CloudStorageFile uploadedFile = supabaseStorageClient.uploadFile(
+                new ByteArrayMultipartFile(fileContent, file.getOriginalFilename(), contentType), 
+                fileId
+            );
 
             Track track = Track.builder()
                 .title(title)
                 .fileId(fileId)
                 .userId(userId)
-                .storageUrl(storageUrl)
+                .storageUrl(uploadedFile.getDownloadUrl())
                 .format(contentType)
                 .encryptionKey(encryptionKey)
                 .iv(iv)
@@ -99,40 +77,34 @@ public class StorageService {
         }
     }
 
-    public byte[] downloadFile(String fileId, String userId) throws Exception {
-        StorageClient storageClient = getClient().getStorage();
-        StorageFileApi bucket = storageClient.from(bucketName);
-
-        byte[] encryptedData = bucket.download(fileId, null);
-
-        Track track = trackRepository.findById(fileId)
+    public byte[] downloadFile(UUID id, UUID userId) throws Exception {
+        Track track = trackRepository.findById(id)
             .orElseThrow(() -> new CloudStorageException("Track not found"));
+
+        byte[] downloadedData = supabaseStorageClient.downloadFile(track.getFileId());
             
         if (track.getEncryptionKey() != null && track.getIv() != null) {
             return encryptionService.decrypt(
-                encryptedData,
+                downloadedData,
                 track.getEncryptionKey(),
                 track.getIv()
             );
         }
         
-        return encryptedData;
+        return downloadedData;
     }
 
     @Transactional
-    public void deleteFile(String fileId, String userId) throws Exception {
-        Track track = trackRepository.findById(fileId)
+    public void deleteFile(UUID id, UUID userId) throws Exception {
+        Track track = trackRepository.findById(id)
             .orElseThrow(() -> new CloudStorageException("Track not found"));
             
         if (!track.getUserId().equals(userId)) {
             throw new CloudStorageException("Not authorized to delete this file");
         }
-        
-        StorageClient storageClient = getClient().getStorage();
-        StorageFileApi bucket = storageClient.from(bucketName);
 
         try {
-            bucket.remove(fileId);
+            supabaseStorageClient.deleteFile(track.getFileId());
             trackRepository.delete(track);
         } catch (Exception e) {
             log.error("Failed to delete file from Supabase Storage", e);
@@ -140,17 +112,14 @@ public class StorageService {
         }
     }
 
-    public String getSignedUrl(String fileId, Duration duration, String userId) throws Exception {
-        Track track = trackRepository.findById(fileId)
+    public String getSignedUrl(UUID id, Duration duration, UUID userId) throws Exception {
+        Track track = trackRepository.findById(id)
             .orElseThrow(() -> new CloudStorageException("Track not found"));
             
-        StorageClient storageClient = getClient().getStorage();
-        StorageFileApi bucket = storageClient.from(bucketName);
-
-        return bucket.getSignedUrl(fileId, duration.toSeconds().intValue());
+        return supabaseStorageClient.getSignedUrl(track.getFileId(), duration.toSeconds());
     }
 
-    private boolean shouldEncryptFile(String userId) {
+    private boolean shouldEncryptFile(UUID userId) {
         return userPreferencesRepository.isEncryptionEnabled(userId);
     }
 }
