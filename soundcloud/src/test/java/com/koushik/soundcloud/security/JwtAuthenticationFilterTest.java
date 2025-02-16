@@ -1,6 +1,9 @@
 package com.koushik.soundcloud.security;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +40,7 @@ class JwtAuthenticationFilterTest {
 
     private static final String SECRET = "your-test-secret-key-must-be-at-least-256-bits-long";
     private static final String USER_ID = "test-user-id";
+    private static final String EMAIL = "test@example.com";
 
     @BeforeEach
     void setUp() {
@@ -44,8 +48,11 @@ class JwtAuthenticationFilterTest {
         response = new MockHttpServletResponse();
         filterChain = new MockFilterChain();
         
+        // Mock JWT properties
         when(jwtProperties.getSecret()).thenReturn(SECRET);
         when(jwtProperties.getIssuer()).thenReturn("supabase");
+        when(jwtProperties.getAudience()).thenReturn("authenticated");
+        when(jwtProperties.getJwtRole()).thenReturn("authenticated");
         
         // Clear security context before each test
         SecurityContextHolder.clearContext();
@@ -61,10 +68,12 @@ class JwtAuthenticationFilterTest {
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         // Assert
-        verify(jwtProperties).getSecret();
-        verify(jwtProperties).getIssuer();
-        assert SecurityContextHolder.getContext().getAuthentication() != null;
-        assert SecurityContextHolder.getContext().getAuthentication().getName().equals(USER_ID);
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        assertNotNull(auth, "Authentication should not be null");
+        assertEquals(EMAIL, auth.getName(), "Authentication name should match email");
+        assertTrue(auth.isAuthenticated(), "Authentication should be authenticated");
+        assertEquals(1, auth.getAuthorities().size(), "Should have one authority");
+        assertEquals("ROLE_USER", auth.getAuthorities().iterator().next().getAuthority());
     }
 
     @Test
@@ -73,9 +82,8 @@ class JwtAuthenticationFilterTest {
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         // Assert
-        verify(jwtProperties, never()).getSecret();
-        verify(jwtProperties, never()).getIssuer();
-        assert SecurityContextHolder.getContext().getAuthentication() == null;
+        assertNull(SecurityContextHolder.getContext().getAuthentication(), 
+            "Authentication should be null when no token is provided");
     }
 
     @Test
@@ -87,14 +95,17 @@ class JwtAuthenticationFilterTest {
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         // Assert
-        verify(jwtProperties).getSecret();
-        assert SecurityContextHolder.getContext().getAuthentication() == null;
+        assertNull(SecurityContextHolder.getContext().getAuthentication(), 
+            "Authentication should be null with invalid token");
     }
 
     private String createValidToken() {
         return Jwts.builder()
             .setSubject(USER_ID)
             .setIssuer("supabase")
+            .setAudience("authenticated")
+            .claim("role", "authenticated")
+            .claim("email", EMAIL)
             .signWith(Keys.hmacShaKeyFor(SECRET.getBytes()), SignatureAlgorithm.HS256)
             .compact();
     }

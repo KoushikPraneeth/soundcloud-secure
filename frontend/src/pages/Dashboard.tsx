@@ -1,109 +1,288 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabaseClient';
+import { Track, Playlist } from '@/lib/types';
+import { MusicPlayer } from '@/components/MusicPlayer';
+import { LibraryView } from '@/components/LibraryView';
+import { PlaylistManager } from '@/components/PlaylistManager';
+import { FileUpload } from '@/components/FileUpload';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet';
+import { Upload, Library, ListMusic } from 'lucide-react';
 
-import { Music, Upload, PlayCircle, List, Users } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+export default function Dashboard() {
+    const [tracks, setTracks] = useState<Track[]>([]);
+    const [playlists, setPlaylists] = useState<Playlist[]>([]);
+    const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const navigate = useNavigate();
+    const { toast } = useToast();
 
-const Dashboard = () => {
+    useEffect(() => {
+        checkAuth();
+        loadTracks();
+        loadPlaylists();
+    }, []);
+
+    const checkAuth = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            navigate('/signin');
+        }
+    };
+
+    const loadTracks = async () => {
+        try {
+            const response = await fetch('/api/tracks');
+            if (response.ok) {
+                const data = await response.json();
+                setTracks(data);
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to load tracks',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const loadPlaylists = async () => {
+        try {
+            const response = await fetch('/api/playlists');
+            if (response.ok) {
+                const data = await response.json();
+                setPlaylists(data);
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to load playlists',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handleUpload = async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/tracks/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                const track = await response.json();
+                setTracks(prev => [...prev, track]);
+                toast({
+                    title: 'Upload successful',
+                    description: `${file.name} has been uploaded`,
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Upload failed',
+                description: 'Failed to upload the file',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handleCreatePlaylist = async (name: string, description: string) => {
+        try {
+            const response = await fetch('/api/playlists', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description }),
+            });
+
+            if (response.ok) {
+                const playlist = await response.json();
+                setPlaylists(prev => [...prev, playlist]);
+                toast({
+                    title: 'Playlist created',
+                    description: `${name} has been created`,
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to create playlist',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handleDeleteTrack = async (track: Track) => {
+        try {
+            const response = await fetch(`/api/tracks/${track.id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                setTracks(prev => prev.filter(t => t.id !== track.id));
+                if (currentTrack?.id === track.id) {
+                    setCurrentTrack(null);
+                    setIsPlaying(false);
+                }
+                toast({
+                    title: 'Track deleted',
+                    description: `${track.title} has been deleted`,
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to delete track',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handleDeletePlaylist = async (playlist: Playlist) => {
+        try {
+            const response = await fetch(`/api/playlists/${playlist.id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                setPlaylists(prev => prev.filter(p => p.id !== playlist.id));
+                toast({
+                    title: 'Playlist deleted',
+                    description: `${playlist.name} has been deleted`,
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to delete playlist',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handleSharePlaylist = async (playlist: Playlist) => {
+        try {
+            const response = await fetch(`/api/playlists/${playlist.id}/share`, {
+                method: 'POST',
+            });
+
+            if (response.ok) {
+                const shareToken = await response.json();
+                const shareUrl = `${window.location.origin}/shared/${shareToken}`;
+                
+                // Copy to clipboard
+                await navigator.clipboard.writeText(shareUrl);
+                
+                toast({
+                    title: 'Share link copied',
+                    description: 'The playlist share link has been copied to your clipboard',
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to share playlist',
+                variant: 'destructive',
+            });
+        }
+    };
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-foreground">Your Music Vault</h1>
-          <div className="flex gap-4">
-            <Button>
-              <Upload className="mr-2" />
-              Import Music
-            </Button>
-            <Button variant="outline">
-              <Users className="mr-2" />
-              Family Vault
-            </Button>
-          </div>
+            <div className="flex h-screen">
+                {/* Sidebar */}
+                <div className="w-64 border-r bg-card p-4">
+                    <div className="space-y-4">
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button className="w-full">
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Upload Music
+          </Button>
+                            </SheetTrigger>
+                            <SheetContent>
+                                <SheetHeader>
+                                    <SheetTitle>Upload Music</SheetTitle>
+                                </SheetHeader>
+                                <div className="mt-6">
+                                    <FileUpload onUpload={handleUpload} />
+        </div>
+                            </SheetContent>
+                        </Sheet>
+
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => document.getElementById('library')?.scrollIntoView()}
+                        >
+                            <Library className="h-4 w-4 mr-2" />
+                            Library
+                        </Button>
+
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => document.getElementById('playlists')?.scrollIntoView()}
+                        >
+                            <ListMusic className="h-4 w-4 mr-2" />
+                            Playlists
+                        </Button>
+              </div>
+              </div>
+
+                {/* Main Content */}
+                <div className="flex-1 overflow-auto pb-24">
+                    <div id="library" className="min-h-screen">
+                        <LibraryView
+                            tracks={tracks}
+                            currentTrack={currentTrack}
+                            isPlaying={isPlaying}
+                            onPlay={track => {
+                                setCurrentTrack(track);
+                                setIsPlaying(true);
+                            }}
+                            onPause={() => setIsPlaying(false)}
+                            onAddToPlaylist={() => {}}
+                            onDelete={handleDeleteTrack}
+                        />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Music className="h-5 w-5" />
-                Library Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-2xl font-bold">247</p>
-                <p className="text-sm text-muted-foreground">Total Tracks</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PlayCircle className="h-5 w-5" />
-                Recently Played
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">No recent tracks</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <List className="h-5 w-5" />
-                Your Playlists
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-2xl font-bold">3</p>
-                <p className="text-sm text-muted-foreground">Active Playlists</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Music</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">No music files found. Import your music to get started.</p>
+                    <div id="playlists" className="min-h-screen">
+                        <PlaylistManager
+                            playlists={playlists}
+                            tracks={tracks}
+                            currentTrack={currentTrack}
+                            isPlaying={isPlaying}
+                            onCreatePlaylist={handleCreatePlaylist}
+                            onDeletePlaylist={handleDeletePlaylist}
+                            onPlayTrack={track => {
+                                setCurrentTrack(track);
+                                setIsPlaying(true);
+                            }}
+                            onPauseTrack={() => setIsPlaying(false)}
+                            onRemoveTrack={() => {}}
+                            onSharePlaylist={handleSharePlaylist}
+                        />
+                    </div>
                 </div>
-              </CardContent>
-            </Card>
           </div>
           
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Storage Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Google Drive</span>
-                    <span className="text-sm text-muted-foreground">2.3 GB</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Dropbox</span>
-                    <span className="text-sm text-muted-foreground">1.7 GB</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+            {/* Music Player */}
+            <MusicPlayer
+                track={currentTrack}
+                onNext={() => {}}
+                onPrevious={() => {}}
+            />
     </div>
   );
-};
-
-export default Dashboard;
+}

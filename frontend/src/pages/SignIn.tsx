@@ -1,5 +1,5 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -35,21 +35,41 @@ const SignIn = () => {
     },
   });
 
+  useEffect(() => {
+    // Check if user is already signed in
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN") {
+        navigate("/dashboard");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   const onSubmit = async (values: z.infer<typeof signInSchema>) => {
     setIsLoading(true);
     try {
-      // TODO: Implement actual signin logic here
-      console.log("Sign in values:", values);
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
       });
-      navigate("/dashboard");
-    } catch (error) {
+
+      if (error) throw error;
+
+      if (data?.user) {
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully signed in.",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Invalid email or password.",
+        description: error.message || "Invalid email or password.",
       });
     } finally {
       setIsLoading(false);
@@ -101,7 +121,10 @@ const SignIn = () => {
             Sign up
           </Link>
         </p>
-        <Link to="/forgot-password" className="text-sm text-primary hover:underline block">
+        <Link
+          to="/forgot-password"
+          className="text-sm text-primary hover:underline block"
+        >
           Forgot your password?
         </Link>
       </div>

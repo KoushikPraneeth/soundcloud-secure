@@ -1,5 +1,5 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -17,14 +17,16 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-const signUpSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const signUpSchema = z
+  .object({
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 const SignUp = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -40,21 +42,42 @@ const SignUp = () => {
     },
   });
 
+  useEffect(() => {
+    // Check if user is already signed in
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN") {
+        navigate("/dashboard");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   const onSubmit = async (values: z.infer<typeof signUpSchema>) => {
     setIsLoading(true);
     try {
-      // TODO: Implement actual signup logic here
-      console.log("Sign up values:", values);
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/signin`,
+        },
+      });
+
+      if (error) throw error;
+
       toast({
         title: "Account created successfully!",
         description: "Please check your email to verify your account.",
       });
       navigate("/signin");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
       });
     } finally {
       setIsLoading(false);

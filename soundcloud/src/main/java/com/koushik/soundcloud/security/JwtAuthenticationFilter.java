@@ -1,8 +1,11 @@
 package com.koushik.soundcloud.security;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.slf4j.Logger;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,7 +17,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.koushik.soundcloud.config.JwtProperties;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -47,30 +53,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Extract JWT token
             final String jwt = authHeader.substring(7);
             
-            // Parse and validate JWT
+            // Parse and validate JWT with Supabase specific claims
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes()))
                     .requireIssuer(jwtProperties.getIssuer())
+                    .require("aud", jwtProperties.getAudience())
+                    .require("role", jwtProperties.getJwtRole())
                     .build()
                     .parseClaimsJws(jwt)
                     .getBody();
 
-            // Extract user ID from the "sub" claim
+            // Extract user ID and email from claims
             String userId = claims.getSubject();
+            String email = claims.get("email", String.class);
+
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                // Create authentication token
+                // Create authentication token with user details
+                var authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+                var principal = new User(email, "", authorities);
+                
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userId,
+                        principal,
                         null,
-                        null // No authorities needed for now
+                        authorities
                 );
                 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
+        } catch (MalformedJwtException e) {
+            log.error("Invalid JWT token: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            log.error("JWT token is expired: {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            log.error("JWT token is unsupported: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("JWT claims string is empty: {}", e.getMessage());
         } catch (Exception e) {
             log.error("JWT Authentication failed: {}", e.getMessage());
-            // Continue with the filter chain - security config will handle unauthorized access
         }
 
         filterChain.doFilter(request, response);

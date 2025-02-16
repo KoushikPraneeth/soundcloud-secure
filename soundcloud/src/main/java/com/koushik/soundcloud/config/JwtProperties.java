@@ -7,9 +7,10 @@ import lombok.Data;
 
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "jwt.supabase")
+@ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
     private String secret;
     private String issuer;
-    private long expiration;
+    private String audience;
+    private String jwtRole;
 }

@@ -33,22 +33,24 @@ class ShareLinkServiceTest {
     private static final String FILE_ID = "test-file";
 
     private CloudStorageFile testFile;
+    private ShareLink testShareLink;
 
     @BeforeEach
     void setUp() {
+        // Setup test file
         testFile = CloudStorageFile.builder()
             .id(FILE_ID)
             .name("test.mp3")
             .mimeType("audio/mpeg")
             .provider(CloudStorageProvider.GOOGLE_DRIVE)
             .build();
+
+        // Mock cloudStorageService to return testFile
+        when(cloudStorageService.getFile(USER_ID, FILE_ID)).thenReturn(testFile);
     }
 
     @Test
     void createShareLink_Success() {
-        // Arrange
-        when(cloudStorageService.getFile(USER_ID, FILE_ID)).thenReturn(testFile);
-        
         // Act
         ShareLink shareLink = shareLinkService.createShareLink(
             USER_ID,
@@ -63,6 +65,7 @@ class ShareLinkServiceTest {
         assertEquals(FILE_ID, shareLink.getFileId());
         assertEquals(ShareLinkStatus.ACTIVE, shareLink.getStatus());
         assertEquals(ShareLinkAccessType.READ_ONLY, shareLink.getAccessType());
+        assertEquals(CloudStorageProvider.GOOGLE_DRIVE, shareLink.getProvider());
         assertNotNull(shareLink.getToken());
         assertTrue(shareLink.getExpiresAt().isAfter(LocalDateTime.now()));
         
@@ -71,7 +74,7 @@ class ShareLinkServiceTest {
 
     @Test
     void listShareLinks_ReturnsOnlyActiveLinks() {
-        // Arrange
+        // Create a share link first
         ShareLink link = shareLinkService.createShareLink(
             USER_ID,
             FILE_ID,
@@ -86,11 +89,13 @@ class ShareLinkServiceTest {
         assertFalse(links.isEmpty());
         assertTrue(links.stream().allMatch(l -> l.getStatus() == ShareLinkStatus.ACTIVE));
         assertTrue(links.contains(link));
+        
+        verify(cloudStorageService).getFile(USER_ID, FILE_ID);
     }
 
     @Test
     void revokeShareLink_Success() {
-        // Arrange
+        // Create a share link first
         ShareLink link = shareLinkService.createShareLink(
             USER_ID,
             FILE_ID,
@@ -105,11 +110,13 @@ class ShareLinkServiceTest {
         ShareLink revokedLink = shareLinkService.getShareLink(USER_ID, link.getId());
         assertNotNull(revokedLink);
         assertEquals(ShareLinkStatus.REVOKED, revokedLink.getStatus());
+        
+        verify(cloudStorageService).getFile(USER_ID, FILE_ID);
     }
 
     @Test
     void validateShareLinkToken_ValidToken_ReturnsLink() {
-        // Arrange
+        // Create a share link first
         ShareLink link = shareLinkService.createShareLink(
             USER_ID,
             FILE_ID,
@@ -123,11 +130,13 @@ class ShareLinkServiceTest {
         // Assert
         assertNotNull(validatedLink);
         assertEquals(link.getId(), validatedLink.getId());
+        
+        verify(cloudStorageService).getFile(USER_ID, FILE_ID);
     }
 
     @Test
     void validateShareLinkToken_ExpiredToken_ReturnsNull() {
-        // Arrange
+        // Create a share link with -1 hours expiration
         ShareLink link = shareLinkService.createShareLink(
             USER_ID,
             FILE_ID,
@@ -141,5 +150,7 @@ class ShareLinkServiceTest {
         // Assert
         assertNull(validatedLink);
         assertEquals(ShareLinkStatus.EXPIRED, link.getStatus());
+        
+        verify(cloudStorageService).getFile(USER_ID, FILE_ID);
     }
 }
