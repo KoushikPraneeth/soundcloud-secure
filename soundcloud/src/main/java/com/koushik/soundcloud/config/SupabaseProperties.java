@@ -10,8 +10,6 @@ import org.springframework.context.annotation.Configuration;
 public class SupabaseProperties {
     private String url;
     private String anonKey;
-    private String serviceKey;
-    private String storageBucketName;
 
     public String getSupabaseUrl() {
         return url;
@@ -19,9 +17,5 @@ public class SupabaseProperties {
 
     public String getSupabaseAnonKey() {
         return anonKey;
-    }
-
-    public String getSupabaseServiceKey() {
-        return serviceKey;
     }
 }

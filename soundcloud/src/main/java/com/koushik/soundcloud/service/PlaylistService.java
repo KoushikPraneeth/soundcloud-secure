@@ -13,8 +13,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PlaylistService {
-    
-    private final StorageService storageService;
 
     public Playlist createPlaylist(String name, String description, String userId) {
         return Playlist.builder()
@@ -70,4 +68,4 @@ public class PlaylistService {
         if (isPublic != null) playlist.setIsPublic(isPublic);
         playlist.setUpdatedAt(System.currentTimeMillis());
     }
-} 
+}

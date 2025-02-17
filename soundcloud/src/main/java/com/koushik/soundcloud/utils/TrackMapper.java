@@ -19,8 +19,7 @@ public class TrackMapper {
             .duration(track.getDuration())
             .format(track.getFormat())
             .bitrate(track.getBitrate())
-            .storageUrl(track.getStorageUrl())
-            .isEncrypted(track.getEncryptionKey() != null)
+            .fileId(track.getFileId())
             .createdAt(track.getCreatedAt())
             .updatedAt(track.getUpdatedAt())
             .build();

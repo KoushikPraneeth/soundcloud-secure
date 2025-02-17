@@ -18,23 +18,15 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class TrackService {
-    private final EncryptionService encryptionService;
-    private final StorageService storageService;
+    private final GoogleDriveService googleDriveService;
 
     public Track uploadTrack(MultipartFile file, String userId) throws Exception {
-        // Generate encryption key and IV
-        String key = encryptionService.generateKey();
-        String iv = encryptionService.generateIv();
-
-        // Extract metadata before encryption
+        // Extract metadata
         Metadata metadata = extractMetadata(file.getBytes());
         
-        // Encrypt file
-        byte[] encryptedData = encryptionService.encrypt(file.getBytes(), key, iv);
-        
-        // Upload to storage
+        // Upload to Google Drive
         String fileId = UUID.randomUUID().toString();
-        String storageUrl = storageService.uploadFile(new ByteArrayInputStream(encryptedData), fileId, file.getContentType());
+        var cloudFile = googleDriveService.uploadFile(file, userId);
 
         // Create track with metadata
         return Track.builder()
@@ -45,13 +37,10 @@ public class TrackService {
                 .genre(metadata.get("xmpDM:genre"))
                 .year(parseYear(metadata.get("xmpDM:releaseDate")))
                 .duration(parseDuration(metadata.get("xmpDM:duration")))
-                .fileId(fileId)
+                .fileId(cloudFile.getId())
                 .userId(userId)
-                .storageUrl(storageUrl)
                 .format(file.getContentType())
                 .bitrate(parseBitrate(metadata.get("xmpDM:audioCompressor")))
-                .encryptionKey(key)
-                .iv(iv)
                 .createdAt(System.currentTimeMillis())
                 .updatedAt(System.currentTimeMillis())
                 .build();
@@ -89,4 +78,4 @@ public class TrackService {
             return null;
         }
     }
-} 
+}

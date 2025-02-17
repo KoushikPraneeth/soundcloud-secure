@@ -1,11 +1,10 @@
 package com.koushik.soundcloud.controller;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
@@ -14,8 +13,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.koushik.soundcloud.entity.Track;
 import com.koushik.soundcloud.service.ITrackService;
-import com.koushik.soundcloud.service.StorageService;
+import com.koushik.soundcloud.service.GoogleDriveService;
 import com.koushik.soundcloud.dto.response.ApiResponse;
+import com.koushik.soundcloud.dto.response.TrackResponse;
+import com.koushik.soundcloud.utils.TrackMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,80 +26,107 @@ import lombok.RequiredArgsConstructor;
 public class TrackController {
     
     private final ITrackService trackService;
-    private final StorageService storageService;
+    private final GoogleDriveService googleDriveService;
+    private final TrackMapper trackMapper;
 
     @PostMapping("/upload")
-    public ResponseEntity<ApiResponse<Track>> uploadTrack(
+    public ResponseEntity<ApiResponse<TrackResponse>> uploadTrack(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
             @AuthenticationPrincipal User user) throws Exception {
-        Track track = storageService.uploadFile(file, UUID.fromString(user.getUsername()), title);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Track uploaded successfully", track));
+        Track track = trackService.uploadTrack(file, UUID.fromString(user.getUsername()));
+        return ResponseEntity.ok(ApiResponse.<TrackResponse>builder()
+            .success(true)
+            .message("Track uploaded successfully")
+            .data(trackMapper.toDto(track))
+            .build());
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Track>>> getAllTracks(@AuthenticationPrincipal User user) {
-        List<Track> tracks = trackService.getAllTracksByUserId(UUID.fromString(user.getUsername()));
-        return ResponseEntity.ok(new ApiResponse<>(true, "Tracks retrieved successfully", tracks));
+    public ResponseEntity<ApiResponse<List<TrackResponse>>> getAllTracks(@AuthenticationPrincipal User user) {
+        List<TrackResponse> tracks = trackService.getAllTracksByUserId(UUID.fromString(user.getUsername()))
+            .stream()
+            .map(trackMapper::toDto)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.<List<TrackResponse>>builder()
+            .success(true)
+            .message("Tracks retrieved successfully")
+            .data(tracks)
+            .build());
     }
 
     @GetMapping("/recent")
-    public ResponseEntity<ApiResponse<List<Track>>> getRecentTracks(@AuthenticationPrincipal User user) {
-        List<Track> tracks = trackService.getRecentTracks(UUID.fromString(user.getUsername()));
-        return ResponseEntity.ok(new ApiResponse<>(true, "Recent tracks retrieved successfully", tracks));
+    public ResponseEntity<ApiResponse<List<TrackResponse>>> getRecentTracks(@AuthenticationPrincipal User user) {
+        List<TrackResponse> tracks = trackService.getRecentTracks(UUID.fromString(user.getUsername()))
+            .stream()
+            .map(trackMapper::toDto)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.<List<TrackResponse>>builder()
+            .success(true)
+            .message("Recent tracks retrieved successfully")
+            .data(tracks)
+            .build());
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<Track>>> searchTracks(
+    public ResponseEntity<ApiResponse<List<TrackResponse>>> searchTracks(
             @RequestParam String query,
             @AuthenticationPrincipal User user) {
-        List<Track> tracks = trackService.searchTracks(UUID.fromString(user.getUsername()), query);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Search results retrieved", tracks));
+        List<TrackResponse> tracks = trackService.searchTracks(UUID.fromString(user.getUsername()), query)
+            .stream()
+            .map(trackMapper::toDto)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.<List<TrackResponse>>builder()
+            .success(true)
+            .message("Search results retrieved")
+            .data(tracks)
+            .build());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Track>> getTrack(
+    public ResponseEntity<ApiResponse<TrackResponse>> getTrack(
             @PathVariable UUID id,
             @AuthenticationPrincipal User user) {
         return trackService.getTrackById(id)
-                .map(track -> ResponseEntity.ok(new ApiResponse<>(true, "Track retrieved successfully", track)))
+                .map(track -> ResponseEntity.ok(ApiResponse.<TrackResponse>builder()
+                    .success(true)
+                    .message("Track retrieved successfully")
+                    .data(trackMapper.toDto(track))
+                    .build()))
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new ApiResponse<>(false, "Track not found", null)));
-    }
-
-    @GetMapping("/{id}/download")
-    public ResponseEntity<byte[]> downloadTrack(
-            @PathVariable UUID id,
-            @AuthenticationPrincipal User user) throws Exception {
-        byte[] data = storageService.downloadFile(id, UUID.fromString(user.getUsername()));
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("audio/mpeg"))
-                .body(data);
+                        .body(ApiResponse.<TrackResponse>builder()
+                            .success(false)
+                            .message("Track not found")
+                            .data(null)
+                            .build()));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Track>> updateTrack(
+    public ResponseEntity<ApiResponse<TrackResponse>> updateTrack(
             @PathVariable UUID id,
             @RequestBody Track track,
             @AuthenticationPrincipal User user) {
-        track.setId(id); // Ensure ID matches path variable
+        track.setId(id);
         Track updatedTrack = trackService.updateTrack(id, track);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Track updated successfully", updatedTrack));
+        return ResponseEntity.ok(ApiResponse.<TrackResponse>builder()
+            .success(true)
+            .message("Track updated successfully")
+            .data(trackMapper.toDto(updatedTrack))
+            .build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteTrack(
             @PathVariable UUID id,
             @AuthenticationPrincipal User user) throws Exception {
-        storageService.deleteFile(id, UUID.fromString(user.getUsername()));
-        return ResponseEntity.ok(new ApiResponse<>(true, "Track deleted successfully", null));
-    }
-
-    @GetMapping("/{id}/stream")
-    public ResponseEntity<ApiResponse<String>> getStreamUrl(
-            @PathVariable UUID id,
-            @AuthenticationPrincipal User user) throws Exception {
-        String url = storageService.getSignedUrl(id, Duration.ofHours(1), UUID.fromString(user.getUsername()));
-        return ResponseEntity.ok(new ApiResponse<>(true, "Stream URL generated", url));
+        Track track = trackService.getTrackById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Track not found"));
+        googleDriveService.deleteFile(track.getFileId(), user.getUsername());
+        trackService.deleteTrack(id);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+            .success(true)
+            .message("Track deleted successfully")
+            .data(null)
+            .build());
     }
 }

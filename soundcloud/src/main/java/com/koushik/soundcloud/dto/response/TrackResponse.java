@@ -2,11 +2,12 @@ package com.koushik.soundcloud.dto.response;
 
 import lombok.Data;
 import lombok.Builder;
+import java.util.UUID;
 
 @Data
 @Builder
 public class TrackResponse {
-    private String id;
+    private UUID id;
     private String title;
     private String artist;
     private String album;
@@ -15,8 +16,7 @@ public class TrackResponse {
     private Long duration;
     private String format;
     private Long bitrate;
-    private String storageUrl;
-    private boolean isEncrypted;
+    private String fileId;
     private Long createdAt;
     private Long updatedAt;
 }

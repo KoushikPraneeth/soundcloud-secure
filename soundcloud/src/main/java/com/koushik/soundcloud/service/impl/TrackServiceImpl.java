@@ -1,6 +1,5 @@
 package com.koushik.soundcloud.service.impl;
 
-import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,11 +10,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.koushik.soundcloud.entity.Track;
 import com.koushik.soundcloud.service.ITrackService;
-import com.koushik.soundcloud.service.EncryptionService;
-import com.koushik.soundcloud.service.StorageService;
+import com.koushik.soundcloud.service.GoogleDriveService;
 import com.koushik.soundcloud.repository.TrackRepository;
-import com.koushik.soundcloud.dto.response.EncryptionResult;
 import com.koushik.soundcloud.exception.CloudStorageException;
+import org.apache.tika.metadata.Metadata;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,13 +25,25 @@ import lombok.extern.slf4j.Slf4j;
 public class TrackServiceImpl implements ITrackService {
 
     private final TrackRepository trackRepository;
-    private final StorageService storageService;
-    private final EncryptionService encryptionService;
+    private final GoogleDriveService googleDriveService;
 
     @Override
     public Track uploadTrack(MultipartFile file, UUID userId) throws Exception {
-        // This method now delegates to StorageService
-        return storageService.uploadFile(file, userId, file.getOriginalFilename());
+        // Upload to Google Drive and get cloud file info
+        var cloudFile = googleDriveService.uploadFile(file, userId.toString());
+        
+        // Create track with basic file info
+        Track track = Track.builder()
+            .id(UUID.randomUUID())
+            .title(file.getOriginalFilename())
+            .fileId(cloudFile.getId())
+            .userId(userId)
+            .format(file.getContentType())
+            .createdAt(System.currentTimeMillis())
+            .updatedAt(System.currentTimeMillis())
+            .build();
+
+        return trackRepository.save(track);
     }
     
     @Override
@@ -81,11 +91,22 @@ public class TrackServiceImpl implements ITrackService {
     }
 
     @Override
-    public void deleteTrack(UUID id) throws Exception {
-        Track track = trackRepository.findById(id)
-            .orElseThrow(() -> new CloudStorageException("Track not found with id: " + id));
-            
-        storageService.deleteFile(id, track.getUserId());
+    public void deleteTrack(UUID id) {
+        trackRepository.findById(id)
+            .ifPresent(track -> {
+                try {
+                    googleDriveService.deleteFile(track.getFileId(), track.getUserId().toString());
+                } catch (Exception e) {
+                    log.error("Failed to delete file from Google Drive", e);
+                }
+                trackRepository.delete(track);
+            });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByFileIdAndUserId(String fileId, UUID userId) {
+        return trackRepository.existsByFileIdAndUserId(fileId, userId);
     }
 
     @Override
@@ -93,6 +114,6 @@ public class TrackServiceImpl implements ITrackService {
         Track track = trackRepository.findById(id)
             .orElseThrow(() -> new CloudStorageException("Track not found with id: " + id));
             
-        return storageService.downloadFile(id, track.getUserId());
+        return googleDriveService.downloadFile(track.getFileId(), track.getUserId().toString());
     }
 }

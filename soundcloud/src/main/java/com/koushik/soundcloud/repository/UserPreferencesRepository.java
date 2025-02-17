@@ -15,22 +15,15 @@ public interface UserPreferencesRepository extends JpaRepository<UserPreferences
     Optional<UserPreferences> findByUserId(UUID userId);
     
     @Modifying
-    @Query("UPDATE UserPreferences up SET up.cloudStorageAccessToken = :accessToken, " +
-           "up.cloudStorageRefreshToken = :refreshToken WHERE up.userId = :userId")
+    @Query("UPDATE UserPreferences up SET up.googleDriveAccessToken = :accessToken, " +
+           "up.googleDriveRefreshToken = :refreshToken WHERE up.userId = :userId")
     void updateCloudStorageTokens(@Param("userId") UUID userId,
                                 @Param("accessToken") String accessToken,
                                 @Param("refreshToken") String refreshToken);
     
     @Modifying
-    @Query("UPDATE UserPreferences up SET up.cloudStorageFolderId = :folderId " +
+    @Query("UPDATE UserPreferences up SET up.googleDriveFolderId = :folderId " +
            "WHERE up.userId = :userId")
     void updateCloudStorageFolderId(@Param("userId") UUID userId,
                                    @Param("folderId") String folderId);
-    
-    @Query("SELECT up.cloudStorageProvider FROM UserPreferences up WHERE up.userId = :userId")
-    Optional<String> findCloudStorageProviderByUserId(@Param("userId") UUID userId);
-    
-    @Query("SELECT COUNT(up) > 0 FROM UserPreferences up " +
-           "WHERE up.userId = :userId AND up.enableEncryption = true")
-    boolean isEncryptionEnabled(@Param("userId") UUID userId);
 }

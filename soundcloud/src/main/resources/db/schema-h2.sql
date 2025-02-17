@@ -6,15 +6,15 @@ DROP TABLE IF EXISTS user_preferences;
 
 -- Create tracks table
 CREATE TABLE tracks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(36) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     artist VARCHAR(255),
     album VARCHAR(255),
     genre VARCHAR(100),
-    year INTEGER,
+    release_year INTEGER,
     duration BIGINT,
     file_id VARCHAR(255) NOT NULL,
-    user_id UUID NOT NULL REFERENCES auth.users(id),
+    user_id VARCHAR(36) NOT NULL,
     format VARCHAR(50),
     bitrate BIGINT,
     created_at BIGINT NOT NULL,
@@ -23,31 +23,33 @@ CREATE TABLE tracks (
 
 -- Create playlists table
 CREATE TABLE playlists (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    description TEXT,
-    user_id UUID NOT NULL REFERENCES auth.users(id),
-    is_public BOOLEAN DEFAULT false,
+    description CLOB,
+    user_id VARCHAR(36) NOT NULL,
+    is_public BOOLEAN DEFAULT FALSE,
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL
 );
 
 -- Create playlist_tracks junction table
 CREATE TABLE playlist_tracks (
-    playlist_id UUID REFERENCES playlists(id) ON DELETE CASCADE,
-    track_id UUID REFERENCES tracks(id) ON DELETE CASCADE,
+    playlist_id VARCHAR(36),
+    track_id VARCHAR(36),
     position INTEGER,
     created_at BIGINT NOT NULL,
-    PRIMARY KEY (playlist_id, track_id)
+    PRIMARY KEY (playlist_id, track_id),
+    FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+    FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE
 );
 
 -- Create user_preferences table
 CREATE TABLE user_preferences (
-    user_id UUID PRIMARY KEY REFERENCES auth.users(id),
-    default_privacy BOOLEAN DEFAULT false,
-    google_drive_folder_id TEXT,
-    google_drive_access_token TEXT,
-    google_drive_refresh_token TEXT,
+    user_id VARCHAR(36) PRIMARY KEY,
+    default_privacy BOOLEAN DEFAULT FALSE,
+    google_drive_folder_id VARCHAR(255),
+    google_drive_access_token VARCHAR(255),
+    google_drive_refresh_token VARCHAR(255),
     theme VARCHAR(20) DEFAULT 'light',
     quality_preference VARCHAR(20) DEFAULT 'high',
     created_at BIGINT NOT NULL,

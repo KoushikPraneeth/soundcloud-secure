@@ -39,17 +39,9 @@ public class Track {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "storage_url")
-    private String storageUrl;
-
     private String format;
 
     private Long bitrate;
-
-    @Column(name = "encryption_key")
-    private String encryptionKey;
-
-    private String iv;
     
     @OneToMany(mappedBy = "track", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

@@ -1,6 +1,5 @@
 package com.koushik.soundcloud.entity;
 
-import com.koushik.soundcloud.model.CloudStorageProvider;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Builder;
@@ -23,22 +22,14 @@ public class UserPreferences {
     @Builder.Default
     private boolean defaultPrivacy = false;
     
-    @Column(name = "enable_encryption")
-    @Builder.Default
-    private boolean enableEncryption = true;
+    @Column(name = "google_drive_folder_id")
+    private String googleDriveFolderId;
     
-    @Column(name = "cloud_storage_provider")
-    @Enumerated(EnumType.STRING)
-    private CloudStorageProvider cloudStorageProvider;
+    @Column(name = "google_drive_access_token")
+    private String googleDriveAccessToken;
     
-    @Column(name = "cloud_storage_folder_id")
-    private String cloudStorageFolderId;
-    
-    @Column(name = "cloud_storage_access_token")
-    private String cloudStorageAccessToken;
-    
-    @Column(name = "cloud_storage_refresh_token")
-    private String cloudStorageRefreshToken;
+    @Column(name = "google_drive_refresh_token")
+    private String googleDriveRefreshToken;
     
     @Column(name = "theme")
     @Builder.Default
@@ -47,10 +38,6 @@ public class UserPreferences {
     @Column(name = "quality_preference")
     @Builder.Default
     private String qualityPreference = "high";
-    
-    @Column(name = "auto_sync_enabled")
-    @Builder.Default
-    private boolean autoSyncEnabled = true;
     
     @Column(name = "created_at")
     private Long createdAt;
