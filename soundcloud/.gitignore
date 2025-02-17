@@ -31,3 +31,21 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables ###
+.env
+.env.local
+.env.*.local
+
+### Credentials ###
+tokens/
+/tokens/
+/src/main/resources/keystore/
+*.jks
+*.p12
+*.pem
+*.key
+
+### Local Configuration ###
+application-local.properties
+application-local.yml
