@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Library } from './components/Library';
 import { Settings } from './components/Settings';
+import { Toaster } from "react-hot-toast";
 import { Playlists } from './components/Playlists';
 import { AuthCallback } from './components/AuthCallback';
 import { useAuthStore } from './store/authStore';
@@ -10,7 +11,7 @@ import { usePlayerStore } from './store/playerStore';
 import { RefreshCw } from 'lucide-react';
 import useSupabaseAuthStore from './store/supabaseAuthStore';
 import { signInWithOAuth } from './utils/supabase';
-import SupabaseAuthCallback from './components/SupabaseAuthCallback';
+import { SupabaseAuthCallback } from './components/SupabaseAuthCallback';
 import Profile from './components/Profile';
 
 // Protected route wrapper
@@ -75,6 +76,27 @@ const ProtectedLayout = () => {
 export default function App() {
   return (
     <Router>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+          success: {
+            style: {
+              background: '#059669',
+            },
+          },
+          error: {
+            style: {
+              background: '#dc2626',
+            },
+            duration: 5000,
+          }
+        }}
+      />
       <Routes>
         <Route path="/auth/dropbox/callback" element={<AuthCallback />} />
         <Route

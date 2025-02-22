@@ -1,6 +1,14 @@
-import React, { useState } from "react";
-import { FolderPlus } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { FolderPlus, Trash2, Pencil, Clock } from "lucide-react";
 import { Modal } from "./Modal";
+import toast from "react-hot-toast";
+import { 
+  createPlaylist, 
+  fetchPlaylists, 
+  deletePlaylist, 
+  updatePlaylist 
+} from "../utils/supabase";
+import { Playlist } from "../types/supabase";
 
 interface PlaylistFormData {
   name: string;
@@ -13,24 +21,108 @@ export const Playlists: React.FC = () => {
     name: "",
     description: "",
   });
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
+
+  useEffect(() => {
+    loadPlaylists();
+  }, []);
+
+  const loadPlaylists = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await fetchPlaylists();
+      setPlaylists(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load playlists';
+      setError(errorMessage);
+      toast(errorMessage, {
+        icon: '❌',
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b'
+        }
+      });
+      console.error('Error loading playlists:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     try {
-      // TODO: Integrate with backend
-      console.log("Creating playlist:", formData);
-
-      // Reset form and close modal
+      if (editingPlaylist) {
+        await updatePlaylist(editingPlaylist.id, formData);
+      } else {
+        await createPlaylist(formData.name, formData.description);
+      }
+      
+      await loadPlaylists();
       setFormData({ name: "", description: "" });
+      setEditingPlaylist(null);
       setIsModalOpen(false);
-    } catch (error) {
-      console.error("Failed to create playlist:", error);
+
+      const action = editingPlaylist ? 'updated' : 'created';
+      toast(`Playlist ${action} successfully!`, {
+        icon: '✅',
+        duration: 3000
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save playlist';
+      setError(errorMessage);
+      toast(errorMessage, {
+        icon: '❌',
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b'
+        }
+      });
+      console.error("Failed to save playlist:", err);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this playlist?')) return;
+    
+    try {
+      setError(null);
+      await deletePlaylist(id);
+      await loadPlaylists();
+      toast('Playlist deleted successfully!', {
+        icon: '🗑️',
+        duration: 3000
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete playlist';
+      setError(errorMessage);
+      toast(errorMessage, {
+        icon: '❌',
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b'
+        }
+      });
+      console.error("Failed to delete playlist:", err);
+    }
+  };
+
+  const handleEdit = (playlist: Playlist) => {
+    setFormData({
+      name: playlist.name,
+      description: playlist.description || "",
+    });
+    setEditingPlaylist(playlist);
+    setIsModalOpen(true);
   };
 
   const handleInputChange = (
@@ -38,6 +130,13 @@ export const Playlists: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setFormData({ name: "", description: "" });
+    setEditingPlaylist(null);
+    setError(null);
   };
 
   return (
@@ -55,22 +154,78 @@ export const Playlists: React.FC = () => {
         </button>
       </div>
 
-      {/* Placeholder content */}
-      <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-        <FolderPlus className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-          No playlists
-        </h3>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Get started by creating a new playlist
-        </p>
-      </div>
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-500 dark:text-gray-400">Loading playlists...</p>
+        </div>
+      ) : playlists.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+          <FolderPlus className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+            No playlists
+          </h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Get started by creating a new playlist
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {playlists.map((playlist) => (
+            <div
+              key={playlist.id}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+            >
+              <div className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
+                      {playlist.name}
+                    </h3>
+                    {playlist.description && (
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                        {playlist.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex space-x-2 ml-4">
+                    <button
+                      onClick={() => handleEdit(playlist)}
+                      className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                    >
+                      <Pencil className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(playlist.id)}
+                      className="text-gray-400 hover:text-red-500"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span>
+                    Created {new Date(playlist.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Create Playlist Modal */}
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Create New Playlist"
+        onClose={handleModalClose}
+        title={editingPlaylist ? "Edit Playlist" : "Create New Playlist"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -87,6 +242,13 @@ export const Playlists: React.FC = () => {
               value={formData.name}
               onChange={handleInputChange}
               required
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e as any);
+                }
+              }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
               placeholder="My Awesome Playlist"
             />
@@ -113,7 +275,7 @@ export const Playlists: React.FC = () => {
           <div className="mt-6 flex justify-end space-x-3">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={handleModalClose}
               className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Cancel
@@ -123,7 +285,9 @@ export const Playlists: React.FC = () => {
               disabled={!formData.name.trim() || isSubmitting}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Creating..." : "Create Playlist"}
+              {isSubmitting 
+                ? (editingPlaylist ? "Saving..." : "Creating...") 
+                : (editingPlaylist ? "Save Changes" : "Create Playlist")}
             </button>
           </div>
         </form>

@@ -16,6 +16,7 @@
     "music-metadata-browser": "^2.5.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.5.2",
     "react-router-dom": "^6.22.3",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",

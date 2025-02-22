@@ -76,3 +76,118 @@ export async function onAuthStateChange(
     subscription.unsubscribe();
   };
 }
+
+// Playlist Management Functions
+export async function createPlaylist(name: string, description?: string) {
+  const session = await getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('playlists')
+    .insert({
+      user_id: session.user.id,
+      name,
+      description
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating playlist:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function fetchPlaylists() {
+  const session = await getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('playlists')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching playlists:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function deletePlaylist(id: string) {
+  const { error } = await supabase
+    .from('playlists')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting playlist:', error);
+    throw error;
+  }
+}
+
+export async function updatePlaylist(id: string, updates: { name?: string; description?: string }) {
+  const { data, error } = await supabase
+    .from('playlists')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating playlist:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function addTrackToPlaylist(playlistId: string, trackId: string) {
+  const { error } = await supabase
+    .from('playlist_tracks')
+    .insert({
+      playlist_id: playlistId,
+      track_id: trackId
+    });
+
+  if (error) {
+    console.error('Error adding track to playlist:', error);
+    throw error;
+  }
+}
+
+export async function removeTrackFromPlaylist(playlistId: string, trackId: string) {
+  const { error } = await supabase
+    .from('playlist_tracks')
+    .delete()
+    .match({
+      playlist_id: playlistId,
+      track_id: trackId
+    });
+
+  if (error) {
+    console.error('Error removing track from playlist:', error);
+    throw error;
+  }
+}
+
+export async function fetchPlaylistTracks(playlistId: string) {
+  const { data, error } = await supabase
+    .from('playlist_tracks')
+    .select(`
+      track_id,
+      tracks (*)
+    `)
+    .eq('playlist_id', playlistId)
+    .order('added_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching playlist tracks:', error);
+    throw error;
+  }
+
+  return data;
+}
