@@ -1,20 +1,25 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Layout } from "./components/Layout";
-import { Library } from "./components/Library";
-import { Settings } from "./components/Settings";
-import { Playlists } from "./components/Playlists";
-import { AuthCallback } from "./components/AuthCallback";
-import { useAuthStore } from "./store/authStore";
-import { Player } from "./components/Player";
-import { usePlayerStore } from "./store/playerStore";
-import { RefreshCw } from "lucide-react";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Layout } from './components/Layout';
+import { Library } from './components/Library';
+import { Settings } from './components/Settings';
+import { Playlists } from './components/Playlists';
+import { AuthCallback } from './components/AuthCallback';
+import { useAuthStore } from './store/authStore';
+import { Player } from './components/Player';
+import { usePlayerStore } from './store/playerStore';
+import { RefreshCw } from 'lucide-react';
+import useSupabaseAuthStore from './store/supabaseAuthStore';
+import { signInWithOAuth } from './utils/supabase';
+import SupabaseAuthCallback from './components/SupabaseAuthCallback';
+import Profile from './components/Profile';
 
 // Protected route wrapper
 const ProtectedLayout = () => {
-  const { isAuthenticated, isAuthenticating } = useAuthStore();
+  const { user: supabaseUser, isLoading: isSupabaseAuthenticating } =
+    useSupabaseAuthStore();
   const { currentTrack } = usePlayerStore();
 
-  if (isAuthenticating) {
+  if (isSupabaseAuthenticating) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center p-8">
@@ -33,7 +38,7 @@ const ProtectedLayout = () => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!supabaseUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center p-8">
@@ -41,18 +46,14 @@ const ProtectedLayout = () => {
             Welcome to SoundVaultPro
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Connect your Dropbox to start playing music
+            Sign in to access your music
           </p>
-          <a
-            href={`https://www.dropbox.com/oauth2/authorize?client_id=${
-              import.meta.env.VITE_DROPBOX_APP_KEY
-            }&redirect_uri=${encodeURIComponent(
-              window.location.origin + "/auth/dropbox/callback"
-            )}&response_type=code`}
+          <button
+            onClick={signInWithOAuth}
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
           >
-            Connect Dropbox
-          </a>
+            Sign in with Google
+          </button>
         </div>
       </div>
     );
@@ -64,6 +65,7 @@ const ProtectedLayout = () => {
         <Route index element={<Library />} />
         <Route path="playlists" element={<Playlists />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="profile" element={<Profile />} />
       </Routes>
       {currentTrack && <Player />}
     </Layout>
@@ -75,6 +77,10 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/auth/dropbox/callback" element={<AuthCallback />} />
+        <Route
+          path="/auth/supabase/callback"
+          element={<SupabaseAuthCallback />}
+        />
         <Route path="/*" element={<ProtectedLayout />} />
       </Routes>
     </Router>

@@ -1,7 +1,9 @@
-import React from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Music, List, Settings, Moon, Sun } from "lucide-react";
-import { useThemeStore } from "../store/themeStore";
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Music, List, Settings, Moon, Sun, LogOut, User } from 'lucide-react';
+import { useThemeStore } from '../store/themeStore';
+import useSupabaseAuthStore from '../store/supabaseAuthStore';
+import { signOut } from '../utils/supabase';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -9,15 +11,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { isDarkMode, toggleTheme } = useThemeStore();
+  const { user: supabaseUser } = useSupabaseAuthStore();
 
   const navItems = [
-    { path: "/", label: "Library", icon: Music },
-    { path: "/playlists", label: "Playlists", icon: List },
-    { path: "/settings", label: "Settings", icon: Settings },
+    { path: '/', label: 'Library', icon: Music },
+    { path: '/playlists', label: 'Playlists', icon: List },
+    { path: '/profile', label: 'Profile', icon: User },
+    { path: '/settings', label: 'Settings', icon: Settings },
   ];
 
   return (
-    <div className={`min-h-screen flex ${isDarkMode ? "dark" : ""}`}>
+    <div className={`min-h-screen flex ${isDarkMode ? 'dark' : ''}`}>
       {/* Sidebar */}
       <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-shrink-0">
         <div className="p-4">
@@ -34,14 +38,23 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({
               className={`w-full flex items-center px-6 py-3 text-sm font-medium transition-colors
                 ${
                   location.pathname === path
-                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                    : "text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
             >
               <Icon size={18} className="mr-3" />
               {label}
             </button>
           ))}
+          {supabaseUser && (
+            <button
+              onClick={signOut}
+              className="w-full flex items-center px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            >
+              <LogOut size={18} className="mr-3" />
+              Sign Out
+            </button>
+          )}
         </nav>
 
         <div className="absolute bottom-0 w-64 p-4 border-t border-gray-200 dark:border-gray-800">
