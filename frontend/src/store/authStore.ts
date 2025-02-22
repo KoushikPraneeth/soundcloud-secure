@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { AuthState } from '../types';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { AuthState } from "../types";
 
 interface AuthStore extends AuthState {
   setAuth: (auth: Partial<AuthState>) => void;
@@ -9,6 +9,7 @@ interface AuthStore extends AuthState {
 
 const initialState: AuthState = {
   isAuthenticated: false,
+  isAuthenticating: false,
   accessToken: null,
   refreshToken: null,
   expiresAt: null,
@@ -23,12 +24,13 @@ export const useAuthStore = create<AuthStore>()(
       clearAuth: () => set(initialState),
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         expiresAt: state.expiresAt,
         isAuthenticated: state.isAuthenticated,
+        isAuthenticating: state.isAuthenticating,
       }),
     }
   )

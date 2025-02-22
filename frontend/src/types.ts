@@ -1,13 +1,13 @@
-import { AudioMetadata } from './utils/metadata';
+import { AudioMetadata } from "./utils/metadata";
 
 export class DropboxError extends Error {
   constructor(
     message: string,
-    public code: string = 'unknown_error',
+    public code: string = "unknown_error",
     public description?: string
   ) {
     super(message);
-    this.name = 'DropboxError';
+    this.name = "DropboxError";
   }
 }
 
@@ -26,12 +26,18 @@ export interface PlayerState {
   isPlaying: boolean;
   volume: number;
   playlist: Track[];
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  cursor: string | null;
+  currentTime: number;
+  duration: number;
   isLoadingMetadata: boolean;
   metadataError: string | null;
 }
 
 export interface AuthState {
   isAuthenticated: boolean;
+  isAuthenticating: boolean;
   accessToken: string | null;
   refreshToken: string | null;
   expiresAt: number | null;
@@ -46,4 +52,15 @@ export interface DropboxAuthResponse {
   scope: string;
   uid: string;
   account_id: string;
+}
+
+export interface DropboxListFolderResponse {
+  entries: Array<{
+    ".tag": string;
+    name: string;
+    path_display: string;
+    id: string;
+  }>;
+  cursor: string;
+  has_more: boolean;
 }

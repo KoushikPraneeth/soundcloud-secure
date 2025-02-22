@@ -1,54 +1,79 @@
-import { create } from 'zustand';
-import { PlayerState, Track } from '../types';
-import { extractMetadata } from '../utils/metadata';
+import { create } from "zustand";
+import { Track, PlayerState } from "../types";
 
 interface PlayerStore extends PlayerState {
   setCurrentTrack: (track: Track | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
   setVolume: (volume: number) => void;
   setPlaylist: (playlist: Track[]) => void;
-  addToPlaylist: (track: Track) => void;
-  updateTrackMetadata: (trackId: string, metadata: Track['metadata']) => void;
-  setLoadingMetadata: (isLoading: boolean) => void;
-  setMetadataError: (error: string | null) => void;
+  appendToPlaylist: (tracks: Track[]) => void;
+  isLoadingMore: boolean;
+  setIsLoadingMore: (isLoading: boolean) => void;
+  hasMore: boolean;
+  setHasMore: (hasMore: boolean) => void;
+  cursor: string | null;
+  setCursor: (cursor: string | null) => void;
+  currentTime: number;
+  duration: number;
+  setCurrentTime: (time: number) => void;
+  setDuration: (duration: number) => void;
+  skipForward: () => void;
+  skipBackward: () => void;
 }
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
   currentTrack: null,
   isPlaying: false,
-  volume: 0.7,
+  volume: 1,
   playlist: [],
+  isLoadingMore: false,
+  hasMore: true,
+  cursor: null,
+  currentTime: 0,
+  duration: 0,
   isLoadingMetadata: false,
   metadataError: null,
-  setCurrentTrack: async (track) => {
-    set({ currentTrack: track });
-    
-    if (track?.temporaryLink && !track.metadata) {
-      set({ isLoadingMetadata: true, metadataError: null });
-      try {
-        const metadata = await extractMetadata(track.temporaryLink);
-        get().updateTrackMetadata(track.id, metadata);
-      } catch (error) {
-        set({ metadataError: 'Failed to load track metadata' });
-      } finally {
-        set({ isLoadingMetadata: false });
-      }
-    }
-  },
+  setCurrentTrack: (track) => set({ currentTrack: track }),
   setIsPlaying: (isPlaying) => set({ isPlaying }),
   setVolume: (volume) => set({ volume }),
   setPlaylist: (playlist) => set({ playlist }),
-  addToPlaylist: (track) => set((state) => ({ 
-    playlist: [...state.playlist, track] 
-  })),
-  updateTrackMetadata: (trackId, metadata) => set((state) => ({
-    playlist: state.playlist.map(track =>
-      track.id === trackId ? { ...track, metadata } : track
-    ),
-    currentTrack: state.currentTrack?.id === trackId
-      ? { ...state.currentTrack, metadata }
-      : state.currentTrack
-  })),
-  setLoadingMetadata: (isLoading) => set({ isLoadingMetadata: isLoading }),
-  setMetadataError: (error) => set({ metadataError: error }),
+  appendToPlaylist: (tracks) =>
+    set((state) => ({ playlist: [...state.playlist, ...tracks] })),
+  setIsLoadingMore: (isLoadingMore) => set({ isLoadingMore }),
+  setHasMore: (hasMore) => set({ hasMore }),
+  setCursor: (cursor) => set({ cursor }),
+  setCurrentTime: (currentTime) => set({ currentTime }),
+  setDuration: (duration) => set({ duration }),
+  skipForward: () => {
+    const { playlist, currentTrack } = get();
+    if (!currentTrack || playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex(
+      (track) => track.id === currentTrack.id
+    );
+    if (currentIndex === -1) return;
+
+    const nextIndex = (currentIndex + 1) % playlist.length;
+    set({
+      currentTrack: playlist[nextIndex],
+      currentTime: 0,
+      isPlaying: true,
+    });
+  },
+  skipBackward: () => {
+    const { playlist, currentTrack } = get();
+    if (!currentTrack || playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex(
+      (track) => track.id === currentTrack.id
+    );
+    if (currentIndex === -1) return;
+
+    const prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+    set({
+      currentTrack: playlist[prevIndex],
+      currentTime: 0,
+      isPlaying: true,
+    });
+  },
 }));

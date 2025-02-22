@@ -1,94 +1,122 @@
-import React from 'react';
-import { useAuthStore } from '../store/authStore';
-import { useThemeStore } from '../store/themeStore';
-import { LogOut, Moon, Sun } from 'lucide-react';
-import { revokeAccess } from '../utils/dropbox';
+import React from "react";
+import { Moon, Sun, LogOut } from "lucide-react";
+import { useThemeStore } from "../store/themeStore";
+import { useAuthStore } from "../store/authStore";
+import { getAuthUrl, revokeAccess } from "../utils/dropbox";
 
 export const Settings: React.FC = () => {
-  const { isAuthenticated } = useAuthStore();
   const { isDarkMode, toggleTheme } = useThemeStore();
+  const { isAuthenticated, error } = useAuthStore();
 
-  const handleDisconnect = async () => {
+  const handleAuthAction = async () => {
+    if (isAuthenticated) {
+      try {
+        await revokeAccess();
+      } catch (error) {
+        console.error("Error disconnecting from Dropbox:", error);
+      }
+    } else {
+      try {
+        const authUrl = await getAuthUrl();
+        window.location.href = authUrl;
+      } catch (error) {
+        console.error("Error generating auth URL:", error);
+      }
+    }
+  };
+
+  const handleReconnect = async () => {
     try {
-      await revokeAccess();
+      const authUrl = await getAuthUrl();
+      window.location.href = authUrl;
     } catch (error) {
-      console.error('Failed to disconnect:', error);
+      console.error("Error generating auth URL:", error);
     }
   };
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-2xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Settings</h2>
-        
-        {/* Theme Settings */}
-        <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Appearance</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-700 dark:text-gray-300">Dark Mode</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Toggle between light and dark themes
-              </p>
-            </div>
-            <button
-              onClick={toggleTheme}
-              className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-            >
-              {isDarkMode ? (
-                <>
-                  <Sun size={18} className="mr-2" />
-                  Light Mode
-                </>
-              ) : (
-                <>
-                  <Moon size={18} className="mr-2" />
-                  Dark Mode
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          Settings
+        </h2>
 
-        {/* Dropbox Connection */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dropbox Connection</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-700 dark:text-gray-300">
-                {isAuthenticated ? 'Connected to Dropbox' : 'Not connected'}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {isAuthenticated 
-                  ? 'Your music files are synced from Apps/SoundVaultPro folder'
-                  : 'Connect to access your music files'
-                }
-              </p>
-            </div>
-            {isAuthenticated ? (
+        <div className="space-y-6">
+          {/* Theme Toggle */}
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Appearance
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Toggle between light and dark mode
+                </p>
+              </div>
               <button
-                onClick={handleDisconnect}
-                className="inline-flex items-center px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                onClick={toggleTheme}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                title={
+                  isDarkMode ? "Switch to light mode" : "Switch to dark mode"
+                }
               >
-                <LogOut size={18} className="mr-2" />
-                Disconnect
+                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
-            ) : (
-              <a
-                href={`https://www.dropbox.com/oauth2/authorize?client_id=${import.meta.env.VITE_DROPBOX_APP_KEY}&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/dropbox/callback')}&response_type=code`}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                Connect Dropbox
-              </a>
-            )}
+            </div>
           </div>
-        </div>
 
-        {/* Version Info */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            SoundVaultPro v1.0.0
-          </p>
+          {/* Dropbox Connection */}
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Dropbox Connection
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Manage your Dropbox connection
+                </p>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={handleAuthAction}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
+                    isAuthenticated
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                    isAuthenticated
+                      ? "focus:ring-red-500"
+                      : "focus:ring-blue-500"
+                  }`}
+                >
+                  <LogOut className="h-5 w-5 mr-2" />
+                  {isAuthenticated ? "Disconnect Dropbox" : "Connect Dropbox"}
+                </button>
+
+                {isAuthenticated && (
+                  <button
+                    onClick={handleReconnect}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Reconnect Dropbox
+                  </button>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {isAuthenticated
+                  ? "Your Dropbox account is connected. You can disconnect or reconnect at any time."
+                  : "Connect your Dropbox account to access your music library."}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
