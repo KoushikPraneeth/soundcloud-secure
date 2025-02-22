@@ -1,13 +1,13 @@
-import { AudioMetadata } from "./utils/metadata";
+import { AudioMetadata } from './utils/metadata';
 
 export class DropboxError extends Error {
   constructor(
     message: string,
-    public code: string = "unknown_error",
+    public code: string = 'unknown_error',
     public description?: string
   ) {
     super(message);
-    this.name = "DropboxError";
+    this.name = 'DropboxError';
   }
 }
 
@@ -33,6 +33,7 @@ export interface PlayerState {
   duration: number;
   isLoadingMetadata: boolean;
   metadataError: string | null;
+  metadataCache: Map<string, AudioMetadata>;
 }
 
 export interface AuthState {
@@ -56,7 +57,7 @@ export interface DropboxAuthResponse {
 
 export interface DropboxListFolderResponse {
   entries: Array<{
-    ".tag": string;
+    '.tag': string;
     name: string;
     path_display: string;
     id: string;
