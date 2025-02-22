@@ -32,10 +32,35 @@ export async function signOut() {
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) {
-    console.error('error getting session', error);
+    console.error('Error getting session:', error);
     throw error;
   }
   return data.session;
+}
+
+export async function handleSupabaseCallback() {
+  try {
+    // Parse the URL to get the code and refresh token
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (!accessToken || !refreshToken) {
+      throw new Error('No tokens found in URL');
+    }
+
+    // Set the session with the tokens
+    const { data: { session }, error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+
+    if (error) throw error;
+    return session;
+  } catch (error) {
+    console.error('Error in handleSupabaseCallback:', error);
+    throw error;
+  }
 }
 
 export async function onAuthStateChange(
@@ -50,10 +75,4 @@ export async function onAuthStateChange(
   return () => {
     subscription.unsubscribe();
   };
-}
-
-export async function handleSupabaseCallback() {
-  // This function is likely not needed as onAuthStateChange handles this
-  // The callback is handled by the onAuthStateChange listener
-  // and the session is set in the store there
 }
