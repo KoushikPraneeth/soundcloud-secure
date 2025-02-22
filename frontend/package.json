@@ -1,5 +1,5 @@
 {
-  "name": "music-streaming-app",
+  "name": "secure-cloud-music-player",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,26 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.4",
-    "@emotion/styled": "^11.11.0",
-    "@mui/material": "^5.15.12",
-    "@supabase/supabase-js": "^2.39.7",
-    "axios": "^1.6.7",
-    "crypto-js": "^4.2.0",
     "dropbox": "^10.34.0",
     "lucide-react": "^0.344.0",
-    "notistack": "^3.0.1",
+    "music-metadata-browser": "^2.5.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.22.2",
-    "uuid": "^9.0.1"
+    "react-router-dom": "^6.22.3",
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
-    "@types/crypto-js": "^4.2.2",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
-    "@types/uuid": "^9.0.8",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
     "eslint": "^9.9.1",

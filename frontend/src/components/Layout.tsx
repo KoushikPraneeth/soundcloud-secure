@@ -1,38 +1,73 @@
-import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import { AppBar, Box, Container, Toolbar, Typography } from '@mui/material';
-import { Music } from 'lucide-react';
-import ProfileMenu from './ProfileMenu';
-import { useAuth } from '../context/AuthContext';
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Music, List, Settings, Moon, Sun } from "lucide-react";
+import { useThemeStore } from "../store/themeStore";
 
-export default function Layout() {
-  const { user } = useAuth();
+export const Layout: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const navigate = useNavigate();
   const location = useLocation();
-  const showProfileMenu = user && location.pathname !== '/auth';
+  const { isDarkMode, toggleTheme } = useThemeStore();
+
+  const navItems = [
+    { path: "/", label: "Library", icon: Music },
+    { path: "/playlists", label: "Playlists", icon: List },
+    { path: "/settings", label: "Settings", icon: Settings },
+  ];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppBar position="static">
-        <Toolbar>
-          <Music className="mr-2" />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Cloud Music Player
-          </Typography>
-          {showProfileMenu && <ProfileMenu />}
-        </Toolbar>
-      </AppBar>
-      
-      <Container component="main" sx={{ mt: 4, mb: 4, flex: 1 }}>
-        <Outlet />
-      </Container>
+    <div className={`min-h-screen flex ${isDarkMode ? "dark" : ""}`}>
+      {/* Sidebar */}
+      <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <div className="p-4">
+          <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+            SoundVaultPro
+          </h1>
+        </div>
 
-      <Box component="footer" sx={{ py: 3, px: 2, mt: 'auto', backgroundColor: 'background.paper' }}>
-        <Container maxWidth="sm">
-          <Typography variant="body2" color="text.secondary" align="center">
-            © {new Date().getFullYear()} Cloud Music Player
-          </Typography>
-        </Container>
-      </Box>
-    </Box>
+        <nav className="mt-8">
+          {navItems.map(({ path, label, icon: Icon }) => (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className={`w-full flex items-center px-6 py-3 text-sm font-medium transition-colors
+                ${
+                  location.pathname === path
+                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                    : "text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                }`}
+            >
+              <Icon size={18} className="mr-3" />
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="absolute bottom-0 w-64 p-4 border-t border-gray-200 dark:border-gray-800">
+          <button
+            onClick={toggleTheme}
+            className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors w-full"
+          >
+            {isDarkMode ? (
+              <>
+                <Sun size={18} className="mr-3" />
+                Light Mode
+              </>
+            ) : (
+              <>
+                <Moon size={18} className="mr-3" />
+                Dark Mode
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 bg-gray-50 dark:bg-gray-900">
+        <main className="h-full">{children}</main>
+      </div>
+    </div>
   );
-}
+};

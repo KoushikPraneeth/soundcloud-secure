@@ -1,97 +1,58 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { SnackbarProvider, useSnackbar } from 'notistack';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { SupabaseProvider } from './context/SupabaseContext';
-import { DropboxProvider } from './context/DropboxContext';
-import theme from './theme';
-import Layout from './components/Layout';
-import Auth from './pages/Auth';
-import Dashboard from './pages/Dashboard';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Layout } from './components/Layout';
+import { Library } from './components/Library';
+import { Settings } from './components/Settings';
+import { Playlists } from './components/Playlists';
+import { AuthCallback } from './components/AuthCallback';
+import { useAuthStore } from './store/authStore';
+import { Player } from './components/Player';
+import { usePlayerStore } from './store/playerStore';
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  return user ? <>{children}</> : <Navigate to="/auth" />;
-}
+// Protected route wrapper
+const ProtectedLayout = () => {
+  const { isAuthenticated } = useAuthStore();
+  const { currentTrack } = usePlayerStore();
+  
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-center p-8">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+            Welcome to SoundVaultPro
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Connect your Dropbox to start playing music
+          </p>
+          <a
+            href={`https://www.dropbox.com/oauth2/authorize?client_id=${import.meta.env.VITE_DROPBOX_APP_KEY}&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/dropbox/callback')}&response_type=code`}
+            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+          >
+            Connect Dropbox
+          </a>
+        </div>
+      </div>
+    );
+  }
 
-// Handle Dropbox OAuth callback
-function DropboxCallback() {
-  const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
-  const location = useLocation();
-
-  useEffect(() => {
-    const handleCallback = () => {
-      const hash = location.hash;
-      if (!hash) return;
-
-      const urlParams = new URLSearchParams(hash.substring(1));
-      const accessToken = urlParams.get('access_token');
-      const error = urlParams.get('error');
-      const errorDescription = urlParams.get('error_description');
-      
-      if (error) {
-        console.error('Dropbox auth error:', error, errorDescription);
-        enqueueSnackbar(
-          errorDescription || 'Failed to connect to Dropbox',
-          { variant: 'error', autoHideDuration: 5000 }
-        );
-        navigate('/');
-        return;
-      }
-      
-      if (accessToken) {
-        window.localStorage.setItem('dropboxAccessToken', accessToken);
-        window.localStorage.removeItem('dropboxAuthPending');
-        enqueueSnackbar('Successfully connected to Dropbox', { variant: 'success' });
-        navigate('/');
-      }
-    };
-
-    handleCallback();
-  }, [location.hash, navigate, enqueueSnackbar]);
-
-  return <div>Processing Dropbox authentication...</div>;
-}
-
-function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <SnackbarProvider
-        maxSnack={3}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        autoHideDuration={3000}
-      >
-        <BrowserRouter>
-          <AuthProvider>
-            <SupabaseProvider>
-              <DropboxProvider>
-                <Routes>
-                  <Route path="/" element={<Layout />}>
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/auth/dropbox/callback" element={<DropboxCallback />} />
-                    <Route
-                      path="/"
-                      element={
-                        <PrivateRoute>
-                          <Dashboard />
-                        </PrivateRoute>
-                      }
-                    />
-                  </Route>
-                </Routes>
-              </DropboxProvider>
-            </SupabaseProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </SnackbarProvider>
-    </ThemeProvider>
+    <Layout>
+      <Routes>
+        <Route index element={<Library />} />
+        <Route path="playlists" element={<Playlists />} />
+        <Route path="settings" element={<Settings />} />
+      </Routes>
+      {currentTrack && <Player />}
+    </Layout>
+  );
+};
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/auth/dropbox/callback" element={<AuthCallback />} />
+        <Route path="/*" element={<ProtectedLayout />} />
+      </Routes>
+    </Router>
   );
 }
-
-export default App;
