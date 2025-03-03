@@ -1,19 +1,18 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const VITE_PORT = 5173;
+const PORT = process.env.PORT || 8080;
 
-// Proxy all requests to the Vite dev server
-app.use('/', createProxyMiddleware({
-  target: `http://localhost:${VITE_PORT}`,
-  changeOrigin: true,
-  ws: true,
-}));
+// Serve static files from the frontend/dist directory
+app.use(express.static(path.join(__dirname, 'frontend/dist')));
+
+// Handle all routes by serving the index.html file (for SPA)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/dist/index.html'));
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Proxying to Vite server on port ${VITE_PORT}`);
+  console.log(`Serving static files from ${path.join(__dirname, 'frontend/dist')}`);
 });

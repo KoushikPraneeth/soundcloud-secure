@@ -6,7 +6,7 @@
     "start": "node server.js",
     "dev": "cd frontend && npm start",
     "build": "cd frontend && npm run build",
-    "install": "npm install http-proxy-middleware express && cd frontend && npm install"
+    "install": "npm install express && cd frontend && npm install"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1"
