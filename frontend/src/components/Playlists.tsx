@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { FolderPlus, Trash2, Pencil, Clock } from "lucide-react";
+import { FolderPlus, Trash2, Pencil, Clock, Music, ChevronLeft } from "lucide-react";
 import { Modal } from "./Modal";
 import toast from "react-hot-toast";
 import { 
   createPlaylist, 
   fetchPlaylists, 
   deletePlaylist, 
-  updatePlaylist 
+  updatePlaylist,
+  fetchPlaylistTracks,
+  removeTrackFromPlaylist
 } from "../utils/supabase";
-import { Playlist } from "../types/supabase";
+import { Playlist, Track } from "../types/supabase";
+import { usePlayerStore } from "../store/playerStore";
 
 interface PlaylistFormData {
   name: string;
@@ -26,10 +29,20 @@ export const Playlists: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
+  const [playlistTracks, setPlaylistTracks] = useState<Track[]>([]);
+  const [isLoadingTracks, setIsLoadingTracks] = useState(false);
+  const { setCurrentTrack } = usePlayerStore();
 
   useEffect(() => {
     loadPlaylists();
   }, []);
+  
+  useEffect(() => {
+    if (selectedPlaylist) {
+      loadPlaylistTracks(selectedPlaylist.id);
+    }
+  }, [selectedPlaylist]);
 
   const loadPlaylists = async () => {
     try {
@@ -50,6 +63,54 @@ export const Playlists: React.FC = () => {
       console.error('Error loading playlists:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const loadPlaylistTracks = async (playlistId: string) => {
+    try {
+      setIsLoadingTracks(true);
+      setError(null);
+      const data = await fetchPlaylistTracks(playlistId);
+      // Extract tracks from the response
+      const tracks = data.map((item: any) => item.tracks);
+      setPlaylistTracks(tracks);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load playlist tracks';
+      setError(errorMessage);
+      toast(errorMessage, {
+        icon: '❌',
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b'
+        }
+      });
+      console.error('Error loading playlist tracks:', err);
+    } finally {
+      setIsLoadingTracks(false);
+    }
+  };
+  
+  const handleRemoveTrack = async (trackId: string) => {
+    if (!selectedPlaylist) return;
+    
+    try {
+      await removeTrackFromPlaylist(selectedPlaylist.id, trackId);
+      // Reload playlist tracks
+      await loadPlaylistTracks(selectedPlaylist.id);
+      toast('Track removed from playlist', {
+        icon: '✅',
+        duration: 3000
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to remove track';
+      toast(errorMessage, {
+        icon: '❌',
+        style: {
+          background: '#fef2f2',
+          color: '#991b1b'
+        }
+      });
+      console.error('Error removing track from playlist:', err);
     }
   };
 
@@ -141,84 +202,178 @@ export const Playlists: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Playlists
-        </h2>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <FolderPlus className="h-5 w-5 mr-2" />
-          New Playlist
-        </button>
-      </div>
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-500 dark:text-gray-400">Loading playlists...</p>
-        </div>
-      ) : playlists.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
-          <FolderPlus className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-            No playlists
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Get started by creating a new playlist
-          </p>
+      {selectedPlaylist ? (
+        // Playlist tracks view
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <button
+                onClick={() => setSelectedPlaylist(null)}
+                className="mr-3 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+              </button>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {selectedPlaylist.name}
+              </h2>
+            </div>
+          </div>
+          
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          
+          {isLoadingTracks ? (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="mt-4 text-gray-500 dark:text-gray-400">Loading tracks...</p>
+            </div>
+          ) : playlistTracks.length === 0 ? (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+              <Music className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                No tracks in this playlist
+              </h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Add tracks from your library to this playlist
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {playlistTracks.map((track) => (
+                <div
+                  key={track.id}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden p-4"
+                >
+                  <div className="flex items-center">
+                    <div 
+                      className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center overflow-hidden cursor-pointer"
+                      onClick={() => setCurrentTrack(track as any)}
+                    >
+                      {track.picture ? (
+                        <img
+                          src={track.picture.data}
+                          alt={track.picture.description || 'Album art'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Music size={20} className="text-gray-500 dark:text-gray-400" />
+                      )}
+                    </div>
+                    <div className="ml-4 flex-1 cursor-pointer" onClick={() => setCurrentTrack(track as any)}>
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        {track.title || track.dropbox_id.split('/').pop()}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {track.artist || 'Unknown Artist'}
+                        {track.album && ` • ${track.album}`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveTrack(track.id)}
+                      className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                      title="Remove from playlist"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {playlists.map((playlist) => (
-            <div
-              key={playlist.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+        // Playlists list view
+        <>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Playlists
+            </h2>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
-                      {playlist.name}
-                    </h3>
-                    {playlist.description && (
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                        {playlist.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex space-x-2 ml-4">
-                    <button
-                      onClick={() => handleEdit(playlist)}
-                      className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                    >
-                      <Pencil className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(playlist.id)}
-                      className="text-gray-400 hover:text-red-500"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                  <Clock className="h-4 w-4 mr-1" />
-                  <span>
-                    Created {new Date(playlist.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
+              <FolderPlus className="h-5 w-5 mr-2" />
+              New Playlist
+            </button>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
             </div>
-          ))}
-        </div>
+          )}
+
+          {isLoading ? (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="mt-4 text-gray-500 dark:text-gray-400">Loading playlists...</p>
+            </div>
+          ) : playlists.length === 0 ? (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+              <FolderPlus className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                No playlists
+              </h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Get started by creating a new playlist
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {playlists.map((playlist) => (
+                <div
+                  key={playlist.id}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden cursor-pointer hover:shadow-md transition-shadow duration-200"
+                  onClick={() => setSelectedPlaylist(playlist)}
+                >
+                  <div className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
+                          {playlist.name}
+                        </h3>
+                        {playlist.description && (
+                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                            {playlist.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex space-x-2 ml-4" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(playlist);
+                          }}
+                          className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                        >
+                          <Pencil className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(playlist.id);
+                          }}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <span>
+                        Created {new Date(playlist.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Create Playlist Modal */}

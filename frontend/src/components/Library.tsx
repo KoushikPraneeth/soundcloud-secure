@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { Music, Lock, Upload } from 'lucide-react';
+import { Music, Lock, Upload, MoreHorizontal, ListPlus } from 'lucide-react';
 import { UploadModal } from './UploadModal';
+import { AddToPlaylistMenu } from './AddToPlaylistMenu';
 import { usePlayerStore } from '../store/playerStore';
 import { useAuthStore } from '../store/authStore';
 import { createDropboxClient, fetchFiles } from '../utils/dropbox';
@@ -267,39 +268,71 @@ export const Library: React.FC = () => {
           </div>
         ) : (
           <>
-            {playlist.map((track) => (
-              <div
-                key={track.id}
-                onClick={() => setCurrentTrack(track)}
-                className={`p-4 rounded-lg cursor-pointer transition-all duration-200 transform hover:scale-[1.02] ${
-                  currentTrack?.id === track.id
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-md'
-                    : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-100 dark:border-gray-700 hover:shadow-md'
-                } border`}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center overflow-hidden">
-                    {track.metadata?.picture ? (
-                      <img
-                        src={track.metadata.picture.data}
-                        alt={track.metadata.picture.description}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Music size={20} className="text-gray-500 dark:text-gray-400" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {track.metadata?.title || track.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {track.metadata?.artist || 'Unknown Artist'}
-                      {track.metadata?.album && ` • ${track.metadata.album}`}
-                    </p>
+            {playlist.map((track) => {
+              const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
+              
+              return (
+                <div
+                  key={track.id}
+                  className={`p-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] ${
+                    currentTrack?.id === track.id
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-md'
+                      : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-100 dark:border-gray-700 hover:shadow-md'
+                  } border relative`}
+                >
+                  <div 
+                    className="flex items-center space-x-4"
+                    onClick={() => setCurrentTrack(track)}
+                  >
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center overflow-hidden">
+                      {track.metadata?.picture ? (
+                        <img
+                          src={track.metadata.picture.data}
+                          alt={track.metadata.picture.description}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Music size={20} className="text-gray-500 dark:text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        {track.metadata?.title || track.name}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {track.metadata?.artist || 'Unknown Artist'}
+                        {track.metadata?.album && ` • ${track.metadata.album}`}
+                      </p>
+                    </div>
+                    
+                    <div 
+                      className="relative"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      <button
+                        className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowPlaylistMenu(!showPlaylistMenu);
+                        }}
+                        title="Add to playlist"
+                      >
+                        <ListPlus size={18} />
+                      </button>
+                      
+                      {showPlaylistMenu && (
+                        <AddToPlaylistMenu 
+                          track={track} 
+                          onClose={() => setShowPlaylistMenu(false)} 
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              );
+            })
             ))}
             {(isLoadingMore || isLoadingMetadata) && (
               <div className="mt-4">
