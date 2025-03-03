@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useSupabaseAuthStore from '../store/supabaseAuthStore';
 import { handleSupabaseCallback } from '../utils/supabase';
 import toast from 'react-hot-toast';
+import { userApi } from '../utils/api';
 
 export const SupabaseAuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,20 @@ export const SupabaseAuthCallback: React.FC = () => {
           // Set both session and user state before navigation
           setSession(session);
           setUser(session.user);
+          
+          // Register user with backend
+          try {
+            await userApi.registerUser({
+              supabaseId: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.full_name || session.user.email || 'User',
+              profilePicture: session.user.user_metadata?.avatar_url
+            });
+            console.log('User registered with backend');
+          } catch (error) {
+            console.error('Error registering user with backend:', error);
+            // Continue with login even if backend registration fails
+          }
           
           toast.dismiss(loadingToast);
           toast.success('Successfully signed in!', {
