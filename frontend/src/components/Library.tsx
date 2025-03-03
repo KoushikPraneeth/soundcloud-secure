@@ -202,12 +202,12 @@ export const Library: React.FC = () => {
   }, [isAuthenticated]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Your Library</h2>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-3 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Your Library</h2>
           {isAuthenticated && (
-            <div className="ml-3 flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+            <div className="mt-1 sm:mt-0 sm:ml-3 flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
               <Lock size={16} />
               <span>End-to-End Encrypted</span>
             </div>
@@ -216,7 +216,7 @@ export const Library: React.FC = () => {
         {isAuthenticated && (
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 w-full sm:w-auto"
           >
             <Upload size={16} className="mr-2" />
             Upload Music

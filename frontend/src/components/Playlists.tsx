@@ -201,7 +201,7 @@ export const Playlists: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-3 sm:p-6">
       {selectedPlaylist ? (
         // Playlist tracks view
         <div>
@@ -213,7 +213,7 @@ export const Playlists: React.FC = () => {
               >
                 <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </button>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate max-w-[200px] sm:max-w-none">
                 {selectedPlaylist.name}
               </h2>
             </div>
@@ -287,13 +287,13 @@ export const Playlists: React.FC = () => {
       ) : (
         // Playlists list view
         <>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
               Playlists
             </h2>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto"
             >
               <FolderPlus className="h-5 w-5 mr-2" />
               New Playlist
@@ -322,7 +322,7 @@ export const Playlists: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {playlists.map((playlist) => (
                 <div
                   key={playlist.id}

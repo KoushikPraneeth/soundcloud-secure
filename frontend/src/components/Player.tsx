@@ -116,9 +116,9 @@ export const Player: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
           {/* Track Info */}
-          <div className="flex items-center space-x-4 flex-1">
+          <div className="flex items-center space-x-4 w-full sm:w-auto sm:flex-1">
             <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-md flex items-center justify-center overflow-hidden">
               {currentTrack.metadata?.picture ? (
                 <img
@@ -145,7 +145,7 @@ export const Player: React.FC = () => {
           </div>
 
           {/* Playback Controls */}
-          <div className="flex items-center justify-center space-x-4 flex-1">
+          <div className="flex items-center justify-center space-x-4 w-full sm:flex-1">
             <button
               onClick={skipBackward}
               className={`p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200 ${
