@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Music, List, Settings, Moon, Sun, LogOut, User } from 'lucide-react';
 import { useThemeStore } from '../store/themeStore';
