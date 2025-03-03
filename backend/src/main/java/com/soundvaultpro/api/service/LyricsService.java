@@ -21,7 +21,7 @@ public class LyricsService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     
-    @Value("${lyrics.api.key}")
+    @Value("${lyrics.api.key:dummy_key_for_development}")
     private String lyricsApiKey;
     
     @Value("${lyrics.api.url:https://api.musixmatch.com/ws/1.1}")

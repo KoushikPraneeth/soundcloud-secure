@@ -7,6 +7,7 @@ import { Playlists } from './components/Playlists';
 import { AuthCallback } from './components/AuthCallback';
 import { useAuthStore } from './store/authStore';
 import { Player } from './components/Player';
+import { TrackDetail } from './components/TrackDetail';
 import { usePlayerStore } from './store/playerStore';
 import { RefreshCw } from 'lucide-react';
 import useSupabaseAuthStore from './store/supabaseAuthStore';
@@ -68,7 +69,12 @@ const ProtectedLayout = () => {
         <Route path="settings" element={<Settings />} />
         <Route path="profile" element={<Profile />} />
       </Routes>
-      {currentTrack && <Player />}
+      {currentTrack && (
+        <>
+          <Player />
+          <TrackDetail />
+        </>
+      )}
     </Layout>
   );
 };
