@@ -281,6 +281,38 @@ export const fetchFiles = async (
   }
 };
 
+export const uploadFile = async (file: File): Promise<Track | null> => {
+  const client = createDropboxClient();
+  if (!client) {
+    throw new Error('Not authenticated with Dropbox');
+  }
+
+  try {
+    // Read the file as an ArrayBuffer
+    const fileBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as ArrayBuffer);
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+
+    // Upload the file to Dropbox
+    const response = await client.filesUpload({
+      path: `/${file.name}`,
+      contents: fileBuffer,
+      mode: { '.tag': 'overwrite' },
+      autorename: true,
+    });
+
+    // Process the uploaded file to get track information
+    const track = await processFiles(client, [response], false);
+    return track[0] || null;
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+};
+
 export const revokeAccess = async (): Promise<void> => {
   const { accessToken } = useAuthStore.getState();
 

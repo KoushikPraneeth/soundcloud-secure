@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { Music, Lock } from 'lucide-react';
+import { Music, Lock, Upload } from 'lucide-react';
+import { UploadModal } from './UploadModal';
 import { usePlayerStore } from '../store/playerStore';
 import { useAuthStore } from '../store/authStore';
 import { createDropboxClient, fetchFiles } from '../utils/dropbox';
@@ -30,6 +31,7 @@ export const Library: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [timeoutSeconds, setTimeoutSeconds] = useState(LOAD_TIMEOUT / 1000);
   const [error, setError] = useState<string | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
 
   const loadMoreTracks = useCallback(async () => {
@@ -193,11 +195,24 @@ export const Library: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Your Library</h2>
-        <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-          <Lock size={16} />
-          <span>End-to-End Encrypted</span>
+        <div className="flex items-center">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Your Library</h2>
+          {isAuthenticated && (
+            <div className="ml-3 flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+              <Lock size={16} />
+              <span>End-to-End Encrypted</span>
+            </div>
+          )}
         </div>
+        {isAuthenticated && (
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+          >
+            <Upload size={16} className="mr-2" />
+            Upload Music
+          </button>
+        )}
       </div>
 
       {metadataError && (
@@ -297,6 +312,12 @@ export const Library: React.FC = () => {
           </>
         )}
       </div>
+      {showUploadModal && (
+        <UploadModal 
+          isOpen={showUploadModal} 
+          onClose={() => setShowUploadModal(false)} 
+        />
+      )}
     </div>
   );
 };
