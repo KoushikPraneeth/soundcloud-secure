@@ -24,7 +24,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
       const selectedFiles = Array.from(e.target.files);
       const audioFiles = selectedFiles.filter(file => 
         file.type.startsWith('audio/') || 
-        ['.mp3', '.wav', '.ogg', '.flac', '.m4a'].some(ext => file.name.toLowerCase().endsWith(ext))
+        ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.opus'].some(ext => file.name.toLowerCase().endsWith(ext))
       );
       
       setFiles(prev => [...prev, ...audioFiles]);
@@ -143,7 +143,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a"
+                accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.opus"
                 multiple
                 className="hidden"
                 id="file-upload"

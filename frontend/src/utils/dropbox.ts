@@ -180,7 +180,7 @@ const processFiles = async (
       continue;
     }
 
-    const isMusicFile = /\.(mp3|m4a|wav|ogg|flac)$/i.test(path);
+    const isMusicFile = /\.(mp3|m4a|wav|ogg|flac|opus)$/i.test(path);
 
     if (!isMusicFile) {
       console.log("Skipping non-music file:", path);

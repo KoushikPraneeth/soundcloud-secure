@@ -33,7 +33,15 @@ export const Library: React.FC = () => {
   const [timeoutSeconds, setTimeoutSeconds] = useState(LOAD_TIMEOUT / 1000);
   const [error, setError] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [playlistMenuState, setPlaylistMenuState] = useState<Record<string, boolean>>({});
   const observerTarget = useRef<HTMLDivElement>(null);
+
+  const togglePlaylistMenu = (trackId: string, state?: boolean) => {
+    setPlaylistMenuState(prev => ({
+      ...prev,
+      [trackId]: state !== undefined ? state : !prev[trackId]
+    }));
+  };
 
   const loadMoreTracks = useCallback(async () => {
     if (!cursor || !hasMore || isLoadingMore || loading) return;
@@ -253,7 +261,7 @@ export const Library: React.FC = () => {
                   </p>
                   <ol className="text-sm text-gray-500 dark:text-gray-400 text-left list-decimal list-inside space-y-2">
                     <li>Go to <a href="https://www.dropbox.com/home" target="_blank" rel="noopener" className="text-blue-500 dark:text-blue-400 hover:underline transition-colors duration-200">dropbox.com/home</a></li>
-                    <li>Upload your music files (.mp3, .m4a, .wav, .ogg, or .flac)</li>
+                    <li>Upload your music files (.mp3, .m4a, .wav, .ogg, .flac, or .opus)</li>
                     <li>Wait a moment and click the retry button below</li>
                   </ol>
                   <button
@@ -269,7 +277,7 @@ export const Library: React.FC = () => {
         ) : (
           <>
             {playlist.map((track) => {
-              const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
+              const showPlaylistMenu = playlistMenuState[track.id] || false;
               
               return (
                 <div
@@ -315,7 +323,7 @@ export const Library: React.FC = () => {
                         className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setShowPlaylistMenu(!showPlaylistMenu);
+                          togglePlaylistMenu(track.id);
                         }}
                         title="Add to playlist"
                       >
@@ -325,15 +333,14 @@ export const Library: React.FC = () => {
                       {showPlaylistMenu && (
                         <AddToPlaylistMenu 
                           track={track} 
-                          onClose={() => setShowPlaylistMenu(false)} 
+                          onClose={() => togglePlaylistMenu(track.id, false)} 
                         />
                       )}
                     </div>
                   </div>
                 </div>
               );
-            })
-            ))}
+            })}
             {(isLoadingMore || isLoadingMetadata) && (
               <div className="mt-4">
                 <TrackSkeleton />
