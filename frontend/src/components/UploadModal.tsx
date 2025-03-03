@@ -3,6 +3,7 @@ import { Upload, X, Check, AlertCircle } from 'lucide-react';
 import { uploadFile } from '../utils/dropbox';
 import { usePlayerStore } from '../store/playerStore';
 import { Track } from '../types';
+import toast from 'react-hot-toast';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -58,15 +59,19 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
     
     for (const file of files) {
       try {
-        // Update progress to show we're starting this file
-        setUploadProgress(prev => ({ ...prev, [file.name]: 10 }));
+        // Upload the file with progress tracking
+        const track = await uploadFile(file, (progress) => {
+          setUploadProgress(prev => ({ ...prev, [file.name]: progress }));
+        });
         
-        // Upload the file
-        const track = await uploadFile(file);
-        
-        // Update progress and status
-        setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
+        // Update status
         setUploadStatus(prev => ({ ...prev, [file.name]: 'success' }));
+        
+        // Show success toast
+        toast.success(`${file.name} uploaded successfully!`, {
+          duration: 3000,
+          position: 'top-center',
+        });
         
         if (track) {
           uploadedTracks.push(track);
@@ -74,16 +79,29 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
       } catch (error) {
         console.error(`Error uploading ${file.name}:`, error);
         setUploadStatus(prev => ({ ...prev, [file.name]: 'error' }));
-        setErrorMessages(prev => ({ 
-          ...prev, 
-          [file.name]: error instanceof Error ? error.message : 'Unknown error occurred'
-        }));
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setErrorMessages(prev => ({ ...prev, [file.name]: errorMessage }));
+        
+        // Show error toast
+        toast.error(`Failed to upload ${file.name}: ${errorMessage}`, {
+          duration: 5000,
+          position: 'top-center',
+        });
       }
     }
     
     // Add successfully uploaded tracks to the playlist
     if (uploadedTracks.length > 0) {
       appendToPlaylist(uploadedTracks);
+      
+      // Show summary toast if multiple files were uploaded
+      if (uploadedTracks.length > 1) {
+        toast.success(`${uploadedTracks.length} files uploaded successfully!`, {
+          duration: 3000,
+          position: 'top-center',
+          icon: '🎵',
+        });
+      }
     }
     
     setUploading(false);

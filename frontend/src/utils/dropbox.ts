@@ -281,21 +281,37 @@ export const fetchFiles = async (
   }
 };
 
-export const uploadFile = async (file: File): Promise<Track | null> => {
+export const uploadFile = async (file: File, onProgress?: (progress: number) => void): Promise<Track | null> => {
   const client = createDropboxClient();
   if (!client) {
     throw new Error('Not authenticated with Dropbox');
   }
 
   try {
+    // Report start of file reading
+    onProgress?.(10);
+    
     // Read the file as an ArrayBuffer
     const fileBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as ArrayBuffer);
       reader.onerror = reject;
+      
+      // Add progress event for file reading
+      reader.onprogress = (event) => {
+        if (event.lengthComputable) {
+          // Calculate progress percentage (10-50%)
+          const fileReadProgress = 10 + (event.loaded / event.total) * 40;
+          onProgress?.(Math.round(fileReadProgress));
+        }
+      };
+      
       reader.readAsArrayBuffer(file);
     });
 
+    // Report start of upload
+    onProgress?.(50);
+    
     // Upload the file to Dropbox
     const response = await client.filesUpload({
       path: `/${file.name}`,
@@ -304,8 +320,15 @@ export const uploadFile = async (file: File): Promise<Track | null> => {
       autorename: true,
     });
 
+    // Report completion of upload
+    onProgress?.(80);
+    
     // Process the uploaded file to get track information
     const track = await processFiles(client, [response], false);
+    
+    // Report completion of metadata processing
+    onProgress?.(100);
+    
     return track[0] || null;
   } catch (error) {
     console.error('Error uploading file:', error);
