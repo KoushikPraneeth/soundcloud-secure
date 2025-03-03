@@ -1,3 +1,9 @@
+# Environment files
+.env
+.env.*
+!.env.example
+# env-template.txt is allowed as it contains example values
+
 # Logs
 logs
 *.log
@@ -7,20 +13,56 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Node.js
 node_modules
 dist
 dist-ssr
 *.local
 
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
+*.iws
+*.iml
+*.ipr
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.env
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Build files
+build/
+out/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application specific
 frontend/.env
+backend/src/main/resources/application-dev.properties
+backend/src/main/resources/application-prod.properties

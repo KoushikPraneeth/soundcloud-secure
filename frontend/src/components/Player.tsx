@@ -204,6 +204,7 @@ export const Player: React.FC = () => {
       <audio
         ref={audioRef}
         src={currentTrack.temporaryLink}
+        crossOrigin="anonymous"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => {
